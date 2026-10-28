@@ -3,6 +3,21 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [1.0.3] - 2026-10-28
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+- On launch, all existing SteamRouteTool firewall rules are removed and re-created from the current network config. Rules with an outdated name format, for routes that no longer exist, or for retired relays are dropped automatically.
+
+### Fixed
+- Crash on launch when firewall rules from 1.0.1 or earlier (`SteamRouteTool-<route>`) were present.
+- Unchecking the "Blocked" column header now removes the firewall rules instead of only clearing the checkboxes.
+- **Clear Rules** now unchecks every row, not just the first few.
+- Blocking or unblocking a route can no longer leave duplicate rules behind if removing an old rule fails.
+
+### Removed
+- Automatic cleanup of CSGORoutingTool firewall rules on launch.
+
 ## [1.0.2] - 2026-10-28
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
@@ -12,9 +27,6 @@ _Updated by [eyyMinda](https://github.com/eyyMinda)._
 - Firewall rules are named `SteamRouteTool-<PROTOCOL>-<route>`.
 - Target framework updated from .NET Framework 4.7.2 to 4.8.
 - About dialog and assembly info credit both authors.
-
-### Notes
-- Rules created by 1.0.1 and earlier (`SteamRouteTool-<route>`) use the old naming scheme. Use **Clear Rules** before upgrading.
 
 ## [1.0.1] - 2021-04-23
 _By [Froody](https://github.com/dfrood)._

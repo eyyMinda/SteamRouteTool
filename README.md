@@ -1,16 +1,14 @@
 # SteamRouteTool
 A tool for blocking routes in Steam games that use Valve's SDR (Steam Datagram Relay) network config.
 
-Current version: **1.0.2**. See [CHANGELOG.md](CHANGELOG.md) for release history.
-
-Note: This will automatically clear any CSGORoutingTool firewall rules upon launch (to save the need to clear those rules in that application).
+Current version: **1.0.3**. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Supports:
 Blocking specific routes for games that use Valve's SDR network config (e.g. Counter-Strike 2 / Counter-Strike: Global Offensive & Dota 2).
 
 The route list is fetched from Steam's `ISteamApps/GetSDRConfig` API. Each blocked route gets three outbound Windows Firewall rules (UDP, TCP and ICMP), named `SteamRouteTool-<PROTOCOL>-<route>`.
 
-> Upgrading from 1.0.1 or earlier? Click **Clear Rules** first, because older versions used a different rule naming scheme.
+On launch, the tool removes all of its existing `SteamRouteTool-` rules and re-creates them from the current network config. Rules with an outdated name format, for routes that no longer exist, or for relays that have been retired are dropped automatically.
 
 ## How to use
 * Click the checkbox of the route(s) you'd like to block.
