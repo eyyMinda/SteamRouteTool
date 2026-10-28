@@ -1,38 +1,47 @@
-# SteamRouteTool
+# Steam Route Tool
 
-A tool for blocking routes in Steam games that use Valve's SDR (Steam Datagram Relay) network config.
+Choose which Valve relay locations your games can connect to.
 
-Current version: **1.1.1**. See [CHANGELOG.md](CHANGELOG.md) for release history.
+Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
 
-## Supports:
+Current version: **2.0.2**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
-Blocking specific routes for games that use Valve's SDR network config (e.g. Counter-Strike 2 / Counter-Strike: Global Offensive & Dota 2).
+![Steam Route Tool: the Routes page, with Amsterdam expanded to show its relays](docs/screenshot.png)
 
-The route list is fetched from Steam's `ISteamApps/GetSDRConfig` API. Each blocked route gets three outbound Windows Firewall rules (UDP, TCP and ICMP), named `SteamRouteTool-<PROTOCOL>-<route>` and grouped under **SteamRouteTool** in Windows Defender Firewall. The blocked ports come from each relay's port range in the config.
+## Download
 
-On launch, the tool reads its existing `SteamRouteTool-` rules, shows what's blocked, and brings the rules in line with the current network config in the background. Only rules that differ are rewritten; rules with an outdated name format, for routes that no longer exist, or for relays that have been retired are removed.
+Get `SteamRouteTool-<version>-win-x64.exe` from [Releases](../../releases). It's a single self-contained file: no installer and no .NET install needed.
 
-## Requirements
+- Windows 10 or 11 (x64).
+- Administrator rights: Windows asks when the app starts, because it creates firewall rules.
+- The exe isn't code-signed yet, so SmartScreen may warn the first time: choose **More info**, then **Run anyway**. You can verify the download against `SHA256SUMS.txt`.
 
-- Windows 10 or 11.
-- [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64).
-- Administrator rights (the app asks on launch), since it creates Windows Firewall rules.
+## Features
 
-## How to use
+- **Pick a game:** Counter-Strike 2, Dota 2 or Deadlock. The route list comes live from Steam.
+- **Block routes with one click.** Each route can be expanded to block individual relays.
+- **Play in one region:** filter to a region (or search) and use **Block all except shown**.
+- **Sort and filter:** search by name, code or region; filter by region or blocked state; group by region or sort by any column.
+- **Pings that work on every network:** a quick round fills the list in a second or two; anything that didn't answer is retried one at a time for networks that drop parallel pings. Last session's pings are shown straight away.
+- **Game profiles:** each game remembers its blocked routes and applies them when you switch games.
+- **Light and dark theme** (Windows 11 style, follows your Windows setting).
+- **Built-in help, update check and links** to the changelog and releases.
 
-- Click the checkbox of the route(s) you'd like to block.
-- Routes marked **▸** have several relay servers. Click the name to expand (**▾**) and block individual relays; click again to collapse. A filled checkbox (■) means only some relays of that route are blocked.
-- Click "Blocked" to toggle all checkboxes.
-- Click a ping value to re-ping that specific relay.
-- Clear Rules will clear all firewall rules.
-- Ping Routes will ping all routes and update their values, routes on screen first. A collapsed route shows the best ping of its relays; `-1` means none of them replied.
-- Greyed pings are from your last session and are replaced as fresh results arrive. Blocked routes show "blocked" and aren't pinged (their pings are blocked too).
+The app's **How to use** page explains everything step by step.
 
-Pinging runs in two rounds: a quick round with several pings at a time fills the list in a second or two on most networks. Routes that didn't answer are then retried one at a time, because some routers (flood protection) and ISPs drop replies when several pings are in flight; on such networks the list fills in over 10–20 seconds.
+## How it works
+
+The route list comes from Steam's `ISteamApps/GetSDRConfig` API. Each blocked route gets three outbound Windows Firewall rules (UDP, TCP and ICMP), named `SteamRouteTool-<PROTOCOL>-<route>` and grouped under **SteamRouteTool** in Windows Defender Firewall. The blocked ports come from each relay's port range in the config.
+
+Valve's games share the same relays, and firewall rules apply to the whole PC, so a blocked route is blocked for every game until you unblock it or switch to a game profile that doesn't block it.
+
+On launch, the tool reads its existing rules, shows what's blocked, and brings the rules in line with the current network config in the background. Only rules that differ are rewritten; rules in an outdated format, for routes that no longer exist, or for retired relays are removed.
+
+Settings, game profiles and cached pings are stored in `%LOCALAPPDATA%\SteamRouteTool`. To remove the tool, click **Unblock all**, then delete the exe and that folder.
 
 ## Building
 
-Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (pinned in `global.json`).
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (pinned in `global.json`). The app uses WPF with the built-in Windows 11 (Fluent) theme and [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet).
 
 ```sh
 dotnet build -c Release
@@ -41,26 +50,18 @@ dotnet test
 
 The output is in `SteamRouteTool/bin/Release/net10.0-windows/`. To open the solution (`SteamRouteTool.slnx`) in Visual Studio, use Visual Studio 2026 or later.
 
-Tests use xUnit v3 on Microsoft.Testing.Platform (enabled in `global.json`) and cover config parsing and firewall rule handling without touching the real firewall. GitHub Actions builds and tests every pull request and push to `main`.
+Tests use xUnit v3 on Microsoft.Testing.Platform (enabled in `global.json`) and cover config parsing, regions, pings, settings and firewall rule handling without touching the real firewall. GitHub Actions builds and tests every pull request and push to `main` and `release/**`.
 
 ## Releases
 
-Pushing a tag that matches the version in `SteamRouteTool/SteamRouteTool.csproj` (e.g. `v1.0.7`) publishes a self-contained `SteamRouteTool-<version>-win-x64.exe` to [GitHub Releases](../../releases), with `SHA256SUMS.txt` and the matching `CHANGELOG.md` section as release notes.
-
-## Images
-
-![Steam Route Tool main window](docs/screenshot.png)
+Pushing a tag that matches the version in `SteamRouteTool/SteamRouteTool.csproj` (e.g. `v2.0.0`) publishes a self-contained `SteamRouteTool-<version>-win-x64.exe` to [GitHub Releases](../../releases), with `SHA256SUMS.txt` and the matching `CHANGELOG.md` section as release notes. 1.x fixes are released from the `release/1.x` branch.
 
 ## Credits
 
-#### Froody (2019)
+- **Froody** (2019): original author. https://github.com/dfrood/SteamRouteTool
+- **eyyMinda** (2026): version 1.0.2 onwards, including the 2.0 redesign. https://github.com/eyyMinda/SteamRouteTool
+- App icon: [Feather icons](https://github.com/feathericons/feather).
 
-Original author: tool creation. https://github.com/dfrood/SteamRouteTool
+## License
 
-#### eyyMinda (2026)
-
-Second author of the 1.0.2+ updates: SDR config API, TCP/UDP/ICMP blocking, firewall rule cleanup, .NET 10 migration. https://github.com/eyyMinda/SteamRouteTool
-
-#### Icon
-
-https://github.com/feathericons/feather#feather
+[GNU General Public License v3.0](LICENSE). Not affiliated with or endorsed by Valve Corporation.

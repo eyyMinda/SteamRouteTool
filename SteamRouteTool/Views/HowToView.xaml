@@ -1,0 +1,103 @@
+<UserControl x:Class="SteamRouteTool.Views.HowToView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+      <TextBlock Text="How to use" Style="{StaticResource PageTitle}" Margin="0,0,0,16" />
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="What it does" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            Valve games like Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay).
+            Steam Route Tool lets you block relays in specific locations with Windows Firewall, so matchmaking only puts you on the servers you want, for example only nearby ones.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Getting started" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">1. Pick your game at the top of the Routes page. The route list comes from Steam and is always current.</TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">2. Wait for the pings to fill in. Green is under 50 ms, amber under 100 ms, red above.</TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">3. Tick <Bold>Blocked</Bold> on every route you don't want to play on. The firewall rule is created immediately.</TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">4. Start (or restart) matchmaking in the game. Blocked locations aren't used anymore.</TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">5. When you're done, use <Bold>Unblock all</Bold> to remove every rule, or just leave them: they stay until you change them.</TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Blocking routes" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Only play in one region:</Bold> choose the region (for example Europe) in the region filter and click <Bold>Block all except shown</Bold>.
+            Every other route is blocked and the shown ones are unblocked. This works with the search box too.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Individual relays:</Bold> most locations have several relay servers. Click the arrow next to a route to show them and block single relays.
+            A route with only some relays blocked shows a filled checkbox (■).
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Sorting and filtering:</Bold> click a column header to sort by name, region, relay count, ping or blocked state.
+            Use the search box, the region and status filters, or turn off <Bold>Group by region</Bold> for one flat list.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Game profiles" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            Each game remembers its own blocked routes. When you switch games, that game's saved selection is applied to the firewall automatically.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            Valve's games share the same relay servers, and firewall rules apply to your whole PC. Blocking a route for one game therefore blocks it for every game until you switch profiles or unblock it.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Pings" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            Greyed values are from your last session and are replaced as fresh results arrive. A collapsed route shows the best ping of its relays.
+            <Bold>no reply</Bold> means none of the tried relays answered; <Bold>blocked</Bold> routes aren't pinged because their pings are blocked too.
+            Click any ping to measure it again.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            Pings are sent quickly in a first round and anything that didn't answer is retried one at a time. Some routers (flood protection) and ISPs drop replies when many pings are sent at once; on such networks the list fills in over 10–20 seconds.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Troubleshooting" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>"Couldn't update the Windows Firewall rules":</Bold> the tool needs administrator rights (Windows asks when it starts) and the Windows Defender Firewall service must be running.
+            Third-party firewalls that replace Windows Firewall aren't supported.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Still connected to a blocked location:</Bold> blocking only affects new connections. Leave the match and search again.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Seeing the rules:</Bold> open Windows Defender Firewall (Settings → Open Windows Firewall) → Outbound Rules. The rules are named SteamRouteTool-UDP/TCP/ICMP-&lt;route&gt; and grouped under SteamRouteTool.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Windows protected your PC:</Bold> the download isn't code-signed yet, so SmartScreen may warn the first time. Choose More info, then Run anyway.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Removing the tool" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            Click <Bold>Unblock all</Bold> first, so no firewall rules are left behind. Then delete the program and, if you like, its settings folder:
+          </TextBlock>
+          <TextBox Text="{Binding SettingsFolder, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="Consolas" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

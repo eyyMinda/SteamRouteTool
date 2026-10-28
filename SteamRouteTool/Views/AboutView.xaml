@@ -1,0 +1,79 @@
+<UserControl x:Class="SteamRouteTool.Views.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="clr-namespace:SteamRouteTool.Services">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+      <TextBlock Text="About" Style="{StaticResource PageTitle}" Margin="0,0,0,16" />
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
+          <Image DockPanel.Dock="Left" Source="/wifi.ico" Width="48" Height="48" Margin="0,0,16,0" VerticalAlignment="Top" />
+          <StackPanel>
+            <TextBlock Text="Steam Route Tool" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Style="{StaticResource SecondaryText}">
+              <Run Text="Version" /> <Run Text="{Binding VersionText, Mode=OneWay}" /> <Run Text="·" /> <Run Text="{Binding RuntimeText, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock Text="Choose which Valve relay locations your games can connect to." Style="{StaticResource BodyText}" Margin="0,8,0,0" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
+            <Button Content="Download update" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0"
+                    Command="{Binding OpenLinkCommand}" CommandParameter="{Binding UpdateUrl}"
+                    Visibility="{Binding IsUpdateAvailable, Converter={StaticResource VisibleWhen}}" />
+            <Button Content="Check for updates" Command="{Binding CheckForUpdatesCommand}" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Text="Updates" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource SecondaryText}" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Links" Style="{StaticResource SectionTitle}" />
+          <WrapPanel>
+            <Button Content="What's new (changelog)" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.ChangelogUrl}" Margin="0,0,8,8" />
+            <Button Content="All releases" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.ReleasesUrl}" Margin="0,0,8,8" />
+            <Button Content="Source code on GitHub" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.RepositoryUrl}" Margin="0,0,8,8" />
+            <Button Content="Report a problem" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.IssuesUrl}" Margin="0,0,8,8" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Credits" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Froody</Bold> (2019): original author of Steam Route Tool.
+            <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.OriginalRepositoryUrl}">Original project</Hyperlink>
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>eyyMinda</Bold> (2026): version 1.0.2 onwards, including the 2.0 redesign.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            App icon from <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="https://github.com/feathericons/feather">Feather icons</Hyperlink>.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="License" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            Steam Route Tool is free software under the GNU General Public License v3.0. You can use, study, share and change it under the license's terms.
+            <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.LicenseUrl}">Read the license</Hyperlink>
+          </TextBlock>
+          <TextBlock Style="{StaticResource SecondaryText}">
+            Not affiliated with or endorsed by Valve Corporation. Steam, Counter-Strike 2, Dota 2 and Deadlock are trademarks of Valve Corporation.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

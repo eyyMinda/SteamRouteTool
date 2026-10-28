@@ -24,6 +24,12 @@ public sealed class FirewallService
     const int NET_FW_RULE_DIR_OUT = 2;
     const int NET_FW_ACTION_BLOCK = 0;
 
+    /// <summary>Whether an exception means Windows Firewall rejected a change (not running as administrator, service stopped, ...).</summary>
+    public static bool IsFirewallError(Exception ex)
+    {
+        return ex is System.Runtime.InteropServices.COMException || ex is UnauthorizedAccessException;
+    }
+
     /// <summary>The properties compared to decide whether an existing rule is already correct.</summary>
     internal sealed record RuleSpec(string Name, int Protocol, string RemotePorts, string RemoteAddresses, string? Grouping, bool Enabled, int Direction, int Action);
 

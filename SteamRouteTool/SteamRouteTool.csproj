@@ -3,27 +3,37 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <RootNamespace>SteamRouteTool</RootNamespace>
     <AssemblyName>SteamRouteTool</AssemblyName>
     <ApplicationIcon>wifi.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- WPF0001: Application.ThemeMode (the Windows 11 Fluent theme) is marked experimental. -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="wifi.ico" />
     <InternalsVisibleTo Include="SteamRouteTool.Tests" />
+    <!-- WPF leaves these out of the implicit usings (System.IO.Path clashes with System.Windows.Shapes.Path, which isn't used here). -->
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
   </ItemGroup>
 
   <PropertyGroup>
-    <Version>1.1.1</Version>
+    <Version>2.0.2</Version>
     <Product>Steam Route Tool</Product>
-    <AssemblyTitle>A tool for blocking routes in Steam games that use Valve's SDR network config</AssemblyTitle>
+    <AssemblyTitle>Choose which Valve relay locations your games can connect to</AssemblyTitle>
     <Company>Froody, eyyMinda</Company>
     <Authors>Froody, eyyMinda</Authors>
     <Copyright>Copyright © 2019 Froody, © 2026 eyyMinda</Copyright>
-    <!-- Keep ProductVersion (shown in the About dialog) as the plain version, without a +commit suffix. -->
+    <!-- Keep the version shown in the app as the plain version, without a +commit suffix. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
