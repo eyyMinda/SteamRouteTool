@@ -9,7 +9,8 @@ public partial class Main : Form
     static readonly HttpClient httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(15) };
     readonly SdrConfigClient configClient = new SdrConfigClient(httpClient);
     readonly FirewallService firewall = new FirewallService();
-    readonly PingService pingService = new PingService(TimeSpan.FromSeconds(1));
+    readonly PingService pingService = new PingService();
+    readonly PingCache pingCache = new PingCache(PingCache.DefaultPath);
 
     IReadOnlyList<Pop> pops = Array.Empty<Pop>();
     // View state: which relays are blocked (mirrors the firewall rules) and which routes show each relay as its own row.
@@ -17,9 +18,11 @@ public partial class Main : Form
     readonly HashSet<Pop> expandedPops = new HashSet<Pop>();
     // The route and relay shown in each grid row. Every relay has a row; collapsed routes only show their first one.
     readonly List<(Pop Pop, int RelayIndex)> rows = new List<(Pop Pop, int RelayIndex)>();
-    // Last ping result per relay (null = no reply) and relays with a ping queued or in progress.
+    // This session's ping result per relay (null = no reply) and relays with a ping queued or in progress.
     readonly Dictionary<Relay, int?> pingResults = new Dictionary<Relay, int?>();
     readonly HashSet<Relay> pendingPings = new HashSet<Relay>();
+    // Last successful ping per relay address from earlier sessions, shown greyed until a fresh result arrives.
+    readonly Dictionary<string, int> cachedPings;
     // Firewall changes from clicks wait until the rules have been synced on launch.
     bool firewallReady;
 
@@ -27,7 +30,9 @@ public partial class Main : Form
     {
         InitializeComponent();
         btn_ClearRules.Enabled = false;
+        cachedPings = pingCache.Load();
         Shown += async (sender, e) => await LoadRoutesAsync();
+        FormClosing += (sender, e) => SavePingCache();
     }
 
     private static bool IsFirewallError(Exception ex)
@@ -148,11 +153,13 @@ public partial class Main : Form
         IReadOnlyList<Relay> relays = expandedPops.Contains(pop) ? [pop.Relays[relayIndex]] : pop.Relays;
         DataGridViewCell cell = routeDataGrid.Rows[rowIndex].Cells[colPing.Index];
 
+        // Fresh results win; while pinging (or before the first ping) the last session's value is shown greyed.
         int? best = relays.Where(pingResults.ContainsKey).Select(relay => pingResults[relay]).Min();
+        int? cached = relays.Select(relay => cachedPings.TryGetValue(relay.Address, out int ping) ? ping : (int?)null).Min();
+        bool pending = relays.Any(pendingPings.Contains);
         if (best != null) { (cell.Value, cell.Style.ForeColor) = (best.ToString(), GetPingColor(best)); }
-        else if (relays.Any(pendingPings.Contains)) { (cell.Value, cell.Style.ForeColor) = ("…", Color.Gray); }
-        else if (relays.Any(pingResults.ContainsKey)) { (cell.Value, cell.Style.ForeColor) = ("-1", GetPingColor(null)); }
-        else { cell.Value = ""; }
+        else if (pending || !relays.Any(pingResults.ContainsKey)) { (cell.Value, cell.Style.ForeColor) = (cached?.ToString() ?? (pending ? "…" : ""), Color.Gray); }
+        else { (cell.Value, cell.Style.ForeColor) = ("-1", GetPingColor(null)); }
     }
 
     private void RefreshPingCells(Pop pop)
@@ -249,44 +256,105 @@ public partial class Main : Form
         return Color.Red;
     }
 
-    // Pings the given relays of a route in order. Awaited on the UI thread, so the grid is only updated from the UI thread.
-    // With stopAtFirstReply, relays are only tried until one answers: enough for a collapsed route, which shows its best ping.
-    private async Task PingRelaysAsync(Pop pop, IReadOnlyList<Relay> relays, bool stopAtFirstReply)
+    // Pings routes in two rounds (see PingService), routes on screen first. Awaited on the UI thread, so the grid is only
+    // updated from the UI thread.
+    // 1. Quick: the first relay of each collapsed route (every relay of an expanded one), several at a time. On networks
+    //    without ICMP limits this is all it takes.
+    // 2. Careful: whatever didn't answer is retried one at a time; collapsed routes try further relays until one answers.
+    private async Task PingPopsAsync(IEnumerable<Pop> popsToPing)
     {
-        foreach (Relay relay in relays)
+        List<Pop> ordered = OrderOnScreenFirst(popsToPing);
+        foreach (Pop pop in ordered)
         {
-            pingResults.Remove(relay);
-            pendingPings.Add(relay);
-        }
-        RefreshPingCells(pop);
-
-        foreach (Relay relay in relays)
-        {
-            int? responseTime = await pingService.PingAsync(relay.Address);
-            if (IsDisposed) { return; }
-            pendingPings.Remove(relay);
-            pingResults[relay] = responseTime;
+            foreach (Relay relay in pop.Relays) { pingResults.Remove(relay); }
+            pendingPings.UnionWith(pop.Relays);
             RefreshPingCells(pop);
-            if (stopAtFirstReply && responseTime != null) { break; }
         }
 
-        pendingPings.ExceptWith(relays);
+        await Task.WhenAll(ordered.SelectMany(pop => GetQuickRoundRelays(pop).Select(relay => PingRelayAsync(pop, relay, quick: true))));
+        foreach (Pop pop in ordered)
+        {
+            await RetryCarefullyAsync(pop);
+            if (IsDisposed) { return; }
+            pendingPings.ExceptWith(pop.Relays);
+            RefreshPingCells(pop);
+        }
+    }
+
+    private IEnumerable<Relay> GetQuickRoundRelays(Pop pop)
+    {
+        return expandedPops.Contains(pop) ? pop.Relays : [pop.Relays[0]];
+    }
+
+    private async Task RetryCarefullyAsync(Pop pop)
+    {
+        if (expandedPops.Contains(pop))
+        {
+            foreach (Relay relay in pop.Relays.Where(relay => pingResults.GetValueOrDefault(relay) == null).ToList())
+            {
+                await PingRelayAsync(pop, relay, quick: false);
+            }
+        }
+        else if (!pop.Relays.Any(relay => pingResults.GetValueOrDefault(relay) != null))
+        {
+            foreach (Relay relay in pop.Relays)
+            {
+                await PingRelayAsync(pop, relay, quick: false);
+                if (pingResults.GetValueOrDefault(relay) != null) { break; }
+            }
+        }
+    }
+
+    private async Task PingRelayAsync(Pop pop, Relay relay, bool quick)
+    {
+        int? responseTime = quick ? await pingService.PingQuicklyAsync(relay.Address) : await pingService.PingCarefullyAsync(relay.Address);
+        if (IsDisposed) { return; }
+        pingResults[relay] = responseTime;
         RefreshPingCells(pop);
     }
 
-    // An expanded route pings every relay; a collapsed one stops at the first relay that answers.
-    private Task PingPopAsync(Pop pop)
+    // Re-pings one relay of an expanded route, carefully.
+    private async Task PingSingleRelayAsync(Pop pop, Relay relay)
     {
-        return PingRelaysAsync(pop, pop.Relays, stopAtFirstReply: !expandedPops.Contains(pop));
+        pingResults.Remove(relay);
+        pendingPings.Add(relay);
+        RefreshPingCells(pop);
+        await PingRelayAsync(pop, relay, quick: false);
+        if (IsDisposed) { return; }
+        pendingPings.Remove(relay);
+        RefreshPingCells(pop);
     }
 
-    // Pings go out one at a time (see PingService), so routes are pinged top to bottom.
+    private List<Pop> OrderOnScreenFirst(IEnumerable<Pop> popsToOrder)
+    {
+        HashSet<Pop> onScreen = new HashSet<Pop>();
+        int rowIndex = routeDataGrid.FirstDisplayedScrollingRowIndex;
+        int remaining = routeDataGrid.DisplayedRowCount(includePartialRow: true);
+        for (; rowIndex >= 0 && rowIndex < rows.Count && remaining > 0; rowIndex++)
+        {
+            if (!routeDataGrid.Rows[rowIndex].Visible) { continue; }
+            onScreen.Add(rows[rowIndex].Pop);
+            remaining--;
+        }
+        return popsToOrder.OrderBy(pop => onScreen.Contains(pop) ? 0 : 1).ToList();
+    }
+
     private async Task PingAllAsync()
     {
         btn_PingRoutes.Enabled = false;
-        await Task.WhenAll(pops.Select(PingPopAsync));
+        await PingPopsAsync(pops);
         if (IsDisposed) { return; }
         btn_PingRoutes.Enabled = true;
+        SavePingCache();
+    }
+
+    private void SavePingCache()
+    {
+        foreach ((Relay relay, int? responseTime) in pingResults)
+        {
+            if (responseTime != null) { cachedPings[relay.Address] = responseTime.Value; }
+        }
+        pingCache.Save(cachedPings);
     }
 
     private void Btn_ClearRules_Click(object? sender, EventArgs e)
@@ -319,12 +387,12 @@ public partial class Main : Form
             bool expanding = expandedPops.Add(pop);
             if (!expanding) { expandedPops.Remove(pop); }
             RefreshGrid();
-            if (expanding) { _ = PingPopAsync(pop); }
+            if (expanding) { _ = PingPopsAsync([pop]); }
         }
         else if (e.ColumnIndex == colPing.Index)
         {
-            if (expandedPops.Contains(pop)) { _ = PingRelaysAsync(pop, [pop.Relays[relayIndex]], stopAtFirstReply: false); }
-            else { _ = PingPopAsync(pop); }
+            if (expandedPops.Contains(pop)) { _ = PingSingleRelayAsync(pop, pop.Relays[relayIndex]); }
+            else { _ = PingPopsAsync([pop]); }
         }
         else if (e.ColumnIndex == colBlocked.Index && firewallReady)
         {

@@ -3,6 +3,19 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [1.1.0] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- Pings from the last session are saved (`%LOCALAPPDATA%\SteamRouteTool\pings.json`) and shown greyed as soon as the app opens, until fresh results replace them.
+
+### Changed
+
+- Pinging adapts to the network. A quick round pings one relay per route with up to 8 pings at a time, which on most networks fills the whole list in a second or two. Whatever didn't answer is then retried one at a time, so networks that drop replies to several pings at once (e.g. router flood protection) still get reliable results.
+- Routes visible on screen are pinged first.
+
 ## [1.0.9] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
