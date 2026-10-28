@@ -54,11 +54,14 @@ partial class Main
         this.colName,
         this.colPing,
         this.colBlocked});
-        this.routeDataGrid.Location = new System.Drawing.Point(1, 1);
+        this.routeDataGrid.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+        this.routeDataGrid.Location = new System.Drawing.Point(0, 0);
         this.routeDataGrid.Name = "routeDataGrid";
         this.routeDataGrid.RowHeadersVisible = false;
         this.routeDataGrid.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
-        this.routeDataGrid.Size = new System.Drawing.Size(269, 240);
+        this.routeDataGrid.Size = new System.Drawing.Size(330, 370);
         this.routeDataGrid.TabIndex = 0;
         this.routeDataGrid.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.RouteDataGrid_CellContentClick);
         // 
@@ -69,7 +72,7 @@ partial class Main
         this.colName.ReadOnly = true;
         this.colName.Resizable = System.Windows.Forms.DataGridViewTriState.False;
         this.colName.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-        this.colName.Width = 155;
+        this.colName.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
         // 
         // Ping
         // 
@@ -92,7 +95,8 @@ partial class Main
         // btn_PingRoutes
         // 
         this.btn_PingRoutes.Enabled = false;
-        this.btn_PingRoutes.Location = new System.Drawing.Point(196, 241);
+        this.btn_PingRoutes.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+        this.btn_PingRoutes.Location = new System.Drawing.Point(252, 374);
         this.btn_PingRoutes.Name = "btn_PingRoutes";
         this.btn_PingRoutes.Size = new System.Drawing.Size(75, 23);
         this.btn_PingRoutes.TabIndex = 1;
@@ -102,7 +106,8 @@ partial class Main
         // 
         // btn_ClearRules
         // 
-        this.btn_ClearRules.Location = new System.Drawing.Point(0, 241);
+        this.btn_ClearRules.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+        this.btn_ClearRules.Location = new System.Drawing.Point(3, 374);
         this.btn_ClearRules.Name = "btn_ClearRules";
         this.btn_ClearRules.Size = new System.Drawing.Size(77, 23);
         this.btn_ClearRules.TabIndex = 2;
@@ -115,7 +120,8 @@ partial class Main
         this.lb_GettingRoutes.AutoSize = true;
         this.lb_GettingRoutes.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
         this.lb_GettingRoutes.ForeColor = System.Drawing.Color.Red;
-        this.lb_GettingRoutes.Location = new System.Drawing.Point(98, 246);
+        this.lb_GettingRoutes.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+        this.lb_GettingRoutes.Location = new System.Drawing.Point(124, 379);
         this.lb_GettingRoutes.Name = "lb_GettingRoutes";
         this.lb_GettingRoutes.Size = new System.Drawing.Size(82, 13);
         this.lb_GettingRoutes.TabIndex = 3;
@@ -123,7 +129,8 @@ partial class Main
         // 
         // btn_About
         // 
-        this.btn_About.Location = new System.Drawing.Point(111, 241);
+        this.btn_About.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+        this.btn_About.Location = new System.Drawing.Point(139, 374);
         this.btn_About.Name = "btn_About";
         this.btn_About.Size = new System.Drawing.Size(51, 23);
         this.btn_About.TabIndex = 4;
@@ -136,7 +143,7 @@ partial class Main
         // 
         this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-        this.ClientSize = new System.Drawing.Size(271, 264);
+        this.ClientSize = new System.Drawing.Size(330, 400);
         this.Controls.Add(this.btn_About);
         this.Controls.Add(this.lb_GettingRoutes);
         this.Controls.Add(this.btn_ClearRules);

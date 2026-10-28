@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <Version>1.0.7</Version>
+    <Version>1.0.8</Version>
     <Product>Steam Route Tool</Product>
     <AssemblyTitle>A tool for blocking routes in Steam games that use Valve's SDR network config</AssemblyTitle>
     <Company>Froody, eyyMinda</Company>

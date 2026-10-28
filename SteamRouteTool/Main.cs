@@ -9,7 +9,7 @@ public partial class Main : Form
     static readonly HttpClient httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(15) };
     readonly SdrConfigClient configClient = new SdrConfigClient(httpClient);
     readonly FirewallService firewall = new FirewallService();
-    readonly PingService pingService = new PingService(TimeSpan.FromSeconds(2));
+    readonly PingService pingService = new PingService(TimeSpan.FromSeconds(1));
 
     IReadOnlyList<Pop> pops = Array.Empty<Pop>();
     // View state: which relays are blocked (mirrors the firewall rules) and which routes show each relay as its own row.
@@ -17,11 +17,26 @@ public partial class Main : Form
     readonly HashSet<Pop> expandedPops = new HashSet<Pop>();
     // The route and relay shown in each grid row. Every relay has a row; collapsed routes only show their first one.
     readonly List<(Pop Pop, int RelayIndex)> rows = new List<(Pop Pop, int RelayIndex)>();
+    // Firewall changes from clicks wait until the rules have been synced on launch.
+    bool firewallReady;
 
     public Main()
     {
         InitializeComponent();
+        btn_ClearRules.Enabled = false;
         Shown += async (sender, e) => await LoadRoutesAsync();
+    }
+
+    private static bool IsFirewallError(Exception ex)
+    {
+        return ex is COMException || ex is UnauthorizedAccessException;
+    }
+
+    private static void ShowFirewallError(Exception ex)
+    {
+        MessageBox.Show("Couldn't update the Windows Firewall rules:" + Environment.NewLine + ex.Message + Environment.NewLine + Environment.NewLine +
+            "Make sure the Windows Defender Firewall service is running and the tool is running as administrator.",
+            "Steam Route Tool - Firewall Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
     // Runs a firewall change, showing an error instead of crashing if Windows Firewall rejects it.
@@ -32,11 +47,23 @@ public partial class Main : Form
             action();
             return true;
         }
-        catch (Exception ex) when (ex is COMException || ex is UnauthorizedAccessException)
+        catch (Exception ex) when (IsFirewallError(ex))
         {
-            MessageBox.Show("Couldn't update the Windows Firewall rules:" + Environment.NewLine + ex.Message + Environment.NewLine + Environment.NewLine +
-                "Make sure the Windows Defender Firewall service is running and the tool is running as administrator.",
-                "Steam Route Tool - Firewall Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            ShowFirewallError(ex);
+            return false;
+        }
+    }
+
+    private static async Task<bool> TryFirewallAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+            return true;
+        }
+        catch (Exception ex) when (IsFirewallError(ex))
+        {
+            ShowFirewallError(ex);
             return false;
         }
     }
@@ -65,8 +92,18 @@ public partial class Main : Form
         lb_GettingRoutes.Visible = false;
         btn_About.Visible = true;
         BuildGrid();
+
+        // Reading the rules is quick, so the checkboxes are right before pings start. Syncing the rules with the
+        // current config then runs in the background and only rewrites rules that changed.
+        bool rulesRead = await TryFirewallAsync(ShowBlockedRoutesAsync);
         _ = PingAllAsync();
-        RestoreBlockedRoutes();
+        if (rulesRead)
+        {
+            HashSet<Relay> blocked = blockedRelays.ToHashSet();
+            await TryFirewallAsync(() => Task.Run(() => firewall.SyncRules(pops, blocked)));
+        }
+        firewallReady = true;
+        btn_ClearRules.Enabled = true;
     }
 
     private void BuildGrid()
@@ -95,9 +132,17 @@ public partial class Main : Form
             bool expanded = expandedPops.Contains(pop);
             DataGridViewRow row = routeDataGrid.Rows[rowIndex];
             row.Visible = expanded || relayIndex == 0;
-            row.Cells[colName.Index].Value = expanded ? pop.Description + " " + (relayIndex + 1) : pop.Description;
+            row.Cells[colName.Index].Value = GetRowName(pop, relayIndex, expanded);
             row.Cells[colBlocked.Index].Value = expanded ? ToCheckState(blockedRelays.Contains(pop.Relays[relayIndex])) : GetBlockedState(pop);
         }
+    }
+
+    // Routes with several relays can be expanded to block relays individually: "▸ Name" collapsed, "▾ Name 1" / "   Name 2" expanded.
+    private static string GetRowName(Pop pop, int relayIndex, bool expanded)
+    {
+        if (pop.Relays.Count == 1) { return pop.Description; }
+        if (!expanded) { return "▸ " + pop.Description; }
+        return (relayIndex == 0 ? "▾ " : "    ") + pop.Description + " " + (relayIndex + 1);
     }
 
     private static CheckState ToCheckState(bool isChecked)
@@ -113,22 +158,17 @@ public partial class Main : Form
         return blockedCount == pop.Relays.Count ? CheckState.Checked : CheckState.Indeterminate;
     }
 
-    // Reads which relays are currently blocked, shows them, then re-applies fresh rules from the current network config.
-    // Rules in an unknown format, for removed routes, or for relays that no longer exist are dropped.
-    private void RestoreBlockedRoutes()
+    // Ticks the relays that the existing rules block. Rules in an unknown format, for removed routes,
+    // or for relays that no longer exist don't match anything and are removed by the sync that follows.
+    private async Task ShowBlockedRoutesAsync()
     {
-        TryFirewall(() =>
+        Dictionary<string, HashSet<string>> blockedAddresses = await Task.Run(firewall.GetBlockedAddresses);
+        blockedRelays.UnionWith(FirewallService.MatchBlockedRelays(pops, blockedAddresses));
+        foreach (Pop pop in pops)
         {
-            blockedRelays.UnionWith(FirewallService.MatchBlockedRelays(pops, firewall.GetBlockedAddresses()));
-            foreach (Pop pop in pops)
-            {
-                if (GetBlockedState(pop) == CheckState.Indeterminate) { expandedPops.Add(pop); }
-            }
-
-            // Show what is currently blocked first, so the list stays accurate even if re-applying the rules fails.
-            RefreshGrid();
-            firewall.ReplaceAllRules(pops, blockedRelays);
-        });
+            if (GetBlockedState(pop) == CheckState.Indeterminate) { expandedPops.Add(pop); }
+        }
+        RefreshGrid();
     }
 
     // Blocks exactly the given relays of a route. The view state only changes if the firewall accepted it.
@@ -167,7 +207,7 @@ public partial class Main : Form
         }
 
         HashSet<Relay> newBlocked = blockAll ? pops.SelectMany(pop => pop.Relays).ToHashSet() : new HashSet<Relay>();
-        if (TryFirewall(() => firewall.ReplaceAllRules(pops, newBlocked)))
+        if (TryFirewall(() => firewall.SyncRules(pops, newBlocked)))
         {
             blockedRelays.Clear();
             blockedRelays.UnionWith(newBlocked);
@@ -188,12 +228,12 @@ public partial class Main : Form
     {
         (Pop pop, int relayIndex) = rows[rowIndex];
         DataGridViewCell cell = routeDataGrid.Rows[rowIndex].Cells[colPing.Index];
-        cell.Style.BackColor = Color.Black;
+        cell.Style.ForeColor = Color.Gray;
+        cell.Value = "…";
         int? responseTime = await pingService.PingAsync(pop.Relays[relayIndex].Address);
         if (IsDisposed) { return; }
         cell.Style.ForeColor = GetPingColor(responseTime);
         cell.Value = responseTime?.ToString() ?? "-1";
-        cell.Style.BackColor = Color.White;
     }
 
     private Task PingPopAsync(Pop pop)
@@ -201,10 +241,11 @@ public partial class Main : Form
         return Task.WhenAll(Enumerable.Range(0, rows.Count).Where(rowIndex => rows[rowIndex].Pop == pop).Select(PingRowAsync));
     }
 
+    // Pings go out one at a time (see PingService), so only the rows that are shown are pinged, top to bottom.
     private async Task PingAllAsync()
     {
         btn_PingRoutes.Enabled = false;
-        await Task.WhenAll(Enumerable.Range(0, rows.Count).Select(PingRowAsync));
+        await Task.WhenAll(Enumerable.Range(0, rows.Count).Where(rowIndex => routeDataGrid.Rows[rowIndex].Visible).Select(PingRowAsync));
         if (IsDisposed) { return; }
         btn_PingRoutes.Enabled = true;
     }
@@ -228,12 +269,12 @@ public partial class Main : Form
     {
         if (e.RowIndex == -1)
         {
-            if (e.ColumnIndex == colBlocked.Index) { ToggleAllBlocked(); }
+            if (e.ColumnIndex == colBlocked.Index && firewallReady) { ToggleAllBlocked(); }
             return;
         }
 
         (Pop pop, int relayIndex) = rows[e.RowIndex];
-        if (e.ColumnIndex == colName.Index)
+        if (e.ColumnIndex == colName.Index && pop.Relays.Count > 1)
         {
             if (!expandedPops.Remove(pop)) { expandedPops.Add(pop); }
             RefreshGrid();
@@ -243,7 +284,7 @@ public partial class Main : Form
         {
             _ = PingRowAsync(e.RowIndex);
         }
-        else if (e.ColumnIndex == colBlocked.Index)
+        else if (e.ColumnIndex == colBlocked.Index && firewallReady)
         {
             if (expandedPops.Contains(pop)) { ToggleRelayBlocked(pop, pop.Relays[relayIndex]); }
             else { TogglePopBlocked(pop); }

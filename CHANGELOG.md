@@ -3,6 +3,24 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [1.0.8] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Fixed
+
+- Pings almost always showed `-1`: since 1.0.5 all relays were pinged at once, and many routers and ISPs drop ICMP replies when several pings are in flight. Pings are now sent one at a time, only for the rows that are shown, and fill in from top to bottom.
+- Slow, frozen startup: every launch removed and re-created all firewall rules (up to ~270 firewall changes) on the UI thread. Rules are now compared with what they should be and only changed rules are rewritten, in the background. An unchanged launch makes no firewall changes.
+- The route list didn't fill the width of the window.
+
+### Changed
+
+- Window is larger, and the Name column fills the available width.
+- Routes with several relays show **▸** / **▾**. Clicking the name expands them so relays can be blocked individually; routes with a single relay no longer react to name clicks.
+- A pending ping shows a grey "…" instead of a black cell.
+- Ping timeout lowered from 2 to 1 second.
+- Clear Rules and the checkboxes are enabled once the firewall rules have been read on launch.
+
 ## [1.0.7] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

@@ -104,4 +104,62 @@ public class FirewallServiceTests
         Assert.Equal("27015-27140", FirewallService.GetRemotePorts([Sto1, Sto2]));
         Assert.Equal("27015-27044", FirewallService.GetRemotePorts([Sto1]));
     }
+
+    [Fact]
+    public void NormalizeAddresses_StripsMasksAndSorts()
+    {
+        Assert.Equal("155.133.248.36,155.133.248.37",
+            FirewallService.NormalizeAddresses("155.133.248.37/255.255.255.255,155.133.248.36/255.255.255.255"));
+    }
+
+    [Fact]
+    public void GetDesiredRules_CreatesOneRulePerProtocolForEachBlockedRoute()
+    {
+        List<FirewallService.RuleSpec> rules = FirewallService.GetDesiredRules([Ams, Sto], new HashSet<Relay> { Sto2 });
+
+        Assert.Equal(["SteamRouteTool-UDP-sto", "SteamRouteTool-TCP-sto", "SteamRouteTool-ICMP-sto"], rules.Select(rule => rule.Name));
+        Assert.All(rules, rule => Assert.Equal("185.25.180.2", rule.RemoteAddresses));
+        Assert.Equal(["27015-27140", "27015-27140", "*"], rules.Select(rule => rule.RemotePorts));
+        Assert.All(rules, rule => Assert.Equal("SteamRouteTool", rule.Grouping));
+    }
+
+    [Fact]
+    public void PlanChanges_LeavesMatchingRulesAlone()
+    {
+        List<FirewallService.RuleSpec> desired = FirewallService.GetDesiredRules([Ams, Sto], new HashSet<Relay> { Ams1, Sto1 });
+
+        (List<string> toRemove, List<FirewallService.RuleSpec> toAdd) = FirewallService.PlanChanges(desired, desired);
+
+        Assert.Empty(toRemove);
+        Assert.Empty(toAdd);
+    }
+
+    [Fact]
+    public void PlanChanges_ReplacesChangedRulesAndRemovesStaleOnes()
+    {
+        List<FirewallService.RuleSpec> existing = FirewallService.GetDesiredRules([Ams, Sto], new HashSet<Relay> { Ams1, Sto1 });
+        // Rule from an earlier version: no group, so it differs from the desired rule.
+        existing[0] = existing[0] with { Grouping = null };
+        existing.Add(existing[1] with { Name = "SteamRouteTool-UDP-dlhr" });
+        List<FirewallService.RuleSpec> desired = FirewallService.GetDesiredRules([Ams, Sto], new HashSet<Relay> { Ams1 });
+
+        (List<string> toRemove, List<FirewallService.RuleSpec> toAdd) = FirewallService.PlanChanges(existing, desired);
+
+        Assert.Equal(
+            ["SteamRouteTool-UDP-ams", "SteamRouteTool-UDP-sto", "SteamRouteTool-TCP-sto", "SteamRouteTool-ICMP-sto", "SteamRouteTool-UDP-dlhr"],
+            toRemove);
+        Assert.Equal(["SteamRouteTool-UDP-ams"], toAdd.Select(rule => rule.Name));
+    }
+
+    [Fact]
+    public void PlanChanges_RemovesEveryDuplicateAndAddsOneBack()
+    {
+        List<FirewallService.RuleSpec> desired = FirewallService.GetDesiredRules([Ams], new HashSet<Relay> { Ams1 });
+        List<FirewallService.RuleSpec> existing = [.. desired, desired[0]];
+
+        (List<string> toRemove, List<FirewallService.RuleSpec> toAdd) = FirewallService.PlanChanges(existing, desired);
+
+        Assert.Equal(["SteamRouteTool-UDP-ams", "SteamRouteTool-UDP-ams"], toRemove);
+        Assert.Equal([desired[0]], toAdd);
+    }
 }

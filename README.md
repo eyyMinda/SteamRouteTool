@@ -2,7 +2,7 @@
 
 A tool for blocking routes in Steam games that use Valve's SDR (Steam Datagram Relay) network config.
 
-Current version: **1.0.7**. See [CHANGELOG.md](CHANGELOG.md) for release history.
+Current version: **1.0.8**. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Supports:
 
@@ -10,7 +10,7 @@ Blocking specific routes for games that use Valve's SDR network config (e.g. Cou
 
 The route list is fetched from Steam's `ISteamApps/GetSDRConfig` API. Each blocked route gets three outbound Windows Firewall rules (UDP, TCP and ICMP), named `SteamRouteTool-<PROTOCOL>-<route>` and grouped under **SteamRouteTool** in Windows Defender Firewall. The blocked ports come from each relay's port range in the config.
 
-On launch, the tool removes all of its existing `SteamRouteTool-` rules and re-creates them from the current network config. Rules with an outdated name format, for routes that no longer exist, or for relays that have been retired are dropped automatically.
+On launch, the tool reads its existing `SteamRouteTool-` rules, shows what's blocked, and brings the rules in line with the current network config in the background. Only rules that differ are rewritten; rules with an outdated name format, for routes that no longer exist, or for relays that have been retired are removed.
 
 ## Requirements
 
@@ -21,11 +21,11 @@ On launch, the tool removes all of its existing `SteamRouteTool-` rules and re-c
 ## How to use
 
 - Click the checkbox of the route(s) you'd like to block.
-- Click the route name to reveal additional routes at that location (if available).
+- Routes marked **▸** have several relay servers. Click the name to expand (**▾**) and block individual relays; click again to collapse. A filled checkbox (■) means only some relays of that route are blocked.
 - Click "Blocked" to toggle all checkboxes.
-- Click a ping value to re-ping that specific route.
+- Click a ping value to re-ping that specific relay.
 - Clear Rules will clear all firewall rules.
-- Ping Routes will ping all routes and update their values.
+- Ping Routes will ping all shown routes and update their values. Pings are sent one at a time (many routers drop replies when several are in flight), so values fill in from top to bottom; `-1` means no reply within 1 second.
 
 ## Building
 
