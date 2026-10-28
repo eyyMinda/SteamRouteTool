@@ -49,6 +49,8 @@ public sealed partial class RoutesViewModel : ObservableObject
         cachedPings = pingCache.Load();
         selectedGame = Game.FromAppId(settings.LastAppId);
         groupByRegion = settings.GroupByRegion;
+        autoMaxPingMs = settings.AutoMaxPingMs;
+        autoMinRoutes = settings.AutoMinRoutes;
 
         ListCollectionView view = (ListCollectionView)CollectionViewSource.GetDefaultView(Routes);
         view.Filter = item => FilterRoute((RouteViewModel)item);
@@ -83,17 +85,18 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBusy))]
-    [NotifyCanExecuteChangedFor(nameof(PingAllCommand), nameof(RefreshCommand), nameof(BlockAllCommand), nameof(UnblockAllCommand), nameof(BlockAllExceptShownCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PingAllCommand), nameof(RefreshCommand), nameof(BlockAllCommand), nameof(UnblockAllCommand), nameof(BlockAllExceptShownCommand), nameof(ApplyAutoSelectCommand))]
     bool isLoading;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBusy), nameof(CanChangeRules))]
-    [NotifyCanExecuteChangedFor(nameof(BlockAllCommand), nameof(UnblockAllCommand), nameof(BlockAllExceptShownCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BlockAllCommand), nameof(UnblockAllCommand), nameof(BlockAllExceptShownCommand), nameof(ApplyAutoSelectCommand))]
     bool isFirewallBusy;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBusy))]
-    [NotifyCanExecuteChangedFor(nameof(PingAllCommand))]
+    [NotifyPropertyChangedFor(nameof(AutoSelectPreview))]
+    [NotifyCanExecuteChangedFor(nameof(PingAllCommand), nameof(ApplyAutoSelectCommand))]
     bool isPinging;
 
     /// <summary>Shown in an error banner until dismissed.</summary>
@@ -114,6 +117,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(Summary));
         OnPropertyChanged(nameof(HasNoShownRoutes));
+        OnPropertyChanged(nameof(AutoSelectPreview));
     }
 
     public string Summary
@@ -442,6 +446,91 @@ public sealed partial class RoutesViewModel : ObservableObject
         StatusMessage = null;
     }
 
+    // ----- Auto select -----
+
+    /// <summary>Whether the Auto select panel is open.</summary>
+    [ObservableProperty]
+    bool isAutoSelectOpen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AutoSelectPreview))]
+    int autoMaxPingMs;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AutoSelectPreview))]
+    int autoMinRoutes;
+
+    partial void OnAutoMaxPingMsChanged(int value)
+    {
+        settings.AutoMaxPingMs = value;
+        settingsStore.Save(settings);
+    }
+
+    partial void OnAutoMinRoutesChanged(int value)
+    {
+        settings.AutoMinRoutes = value;
+        settingsStore.Save(settings);
+    }
+
+    [RelayCommand]
+    void ToggleAutoSelect()
+    {
+        IsAutoSelectOpen = !IsAutoSelectOpen;
+        OnPropertyChanged(nameof(AutoSelectPreview));
+    }
+
+    /// <summary>
+    /// The best known ping of a route: this session's result if a relay answered, otherwise the last session's. Blocked
+    /// routes can't be pinged, so for them the last session's value is all there is.
+    /// </summary>
+    int? GetKnownPing(Pop pop)
+    {
+        return pop.Relays
+            .Select(relay => pingResults.GetValueOrDefault(relay.Address) ?? (cachedPings.TryGetValue(relay.Address, out int cached) ? cached : null))
+            .Min();
+    }
+
+    IReadOnlyList<Pop> GetAutoSelectedRoutes()
+    {
+        return AutoSelector.SelectRoutesToKeep(pops.Select(pop => (pop, GetKnownPing(pop))), AutoMaxPingMs, AutoMinRoutes);
+    }
+
+    /// <summary>What Auto select would do with the current settings, e.g. "Keeps 9 routes and blocks 36: Warsaw (13 ms), ... and 3 more."</summary>
+    public string AutoSelectPreview
+    {
+        get
+        {
+            if (pops.Count == 0) { return ""; }
+            IReadOnlyList<Pop> kept = GetAutoSelectedRoutes();
+            if (kept.Count == 0) { return "No pings are known yet. Click Ping all first."; }
+
+            int unknown = pops.Count(pop => GetKnownPing(pop) == null);
+            string names = string.Join(", ", kept.Take(6).Select(pop => $"{pop.Description} ({GetKnownPing(pop)} ms)")) + (kept.Count > 6 ? $" and {kept.Count - 6} more" : "");
+            string preview = $"Keeps {kept.Count} {(kept.Count == 1 ? "route" : "routes")} and blocks {pops.Count - kept.Count}: {names}.";
+            if (unknown > 0) { preview += $" {unknown} {(unknown == 1 ? "route has" : "routes have")} no known ping and will be blocked."; }
+            if (IsPinging) { preview += " Pings are still being measured."; }
+            return preview;
+        }
+    }
+
+    /// <summary>Unblocks the selected routes and blocks every other route, all relays included.</summary>
+    [RelayCommand(CanExecute = nameof(CanApplyAutoSelect))]
+    async Task ApplyAutoSelectAsync()
+    {
+        IReadOnlyList<Pop> kept = GetAutoSelectedRoutes();
+        if (kept.Count == 0)
+        {
+            StatusMessage = "Auto select needs at least one known ping. Click Ping all first.";
+            return;
+        }
+        HashSet<Pop> keptSet = kept.ToHashSet();
+        HashSet<Relay> blocked = pops.Where(pop => !keptSet.Contains(pop)).SelectMany(pop => pop.Relays).ToHashSet();
+        IsAutoSelectOpen = false;
+        await ApplyBlockedAsync(blocked, $"Auto select kept the {kept.Count} fastest {(kept.Count == 1 ? "route" : "routes")} and blocked {pops.Count - kept.Count}.");
+    }
+
+    bool CanApplyAutoSelect() => CanChangeRules && !IsPinging;
+
     // ----- Pinging -----
 
     public PingText DescribePing(IEnumerable<Relay> relays)
@@ -542,6 +631,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         int? responseTime = quick ? await pingService.PingQuicklyAsync(relay.Address) : await pingService.PingCarefullyAsync(relay.Address);
         pingResults[relay.Address] = responseTime;
         route.Refresh();
+        if (IsAutoSelectOpen) { OnPropertyChanged(nameof(AutoSelectPreview)); }
     }
 
     List<RouteViewModel> OrderShownFirst(IReadOnlyList<RouteViewModel> routes)

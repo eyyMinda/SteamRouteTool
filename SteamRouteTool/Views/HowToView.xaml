@@ -34,6 +34,11 @@
             Every other route is blocked and the shown ones are unblocked. This works with the search box too.
           </TextBlock>
           <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Let the app choose:</Bold> click <Bold>Auto select</Bold>, set the highest ping you want to play on and how many of the fastest routes to always keep, check the preview and click <Bold>Apply</Bold>.
+            Every other route is blocked. It uses each route's best known ping; blocked routes can't be pinged, so for them the last measured ping is used, and routes without any known ping are blocked.
+            For the most accurate result, click <Bold>Unblock all</Bold> and <Bold>Ping all</Bold> first.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
             <Bold>Individual relays:</Bold> most locations have several relay servers. Click the arrow next to a route to show them and block single relays.
             A route with only some relays blocked shows a filled checkbox (■).
           </TextBlock>
