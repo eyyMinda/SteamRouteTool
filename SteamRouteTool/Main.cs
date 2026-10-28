@@ -1,14 +1,12 @@
-﻿using NetFwTypeLib;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -20,49 +18,107 @@ namespace SteamRouteTool
         int rowCount = 0;
         bool columnChecked = false;
         bool firstLoad = true;
-        string networkconfigURL = @"https://steamcdn-a.akamaihd.net/apps/sdr/network_config.json";
+        string networkconfigURL = @"https://api.steampowered.com/ISteamApps/GetSDRConfig/v1?appid=730";
+        static readonly HttpClient httpClient = new HttpClient();
+
+        // Firewall rules are named "SteamRouteTool-<PROTOCOL>-<route>", one per protocol per blocked route.
+        const string RulePrefix = "SteamRouteTool-";
+        const string GamePorts = "27015-27068";
+        static readonly Dictionary<string, int> RuleProtocols = new Dictionary<string, int>
+        {
+            { "UDP", 17 },
+            { "TCP", 6 },
+            { "ICMP", 1 }
+        };
+
+        // The Windows Firewall API (HNetCfg) is used late-bound, so no COM interop reference is needed to build.
+        const int NET_FW_RULE_DIR_OUT = 2;
+        const int NET_FW_ACTION_BLOCK = 0;
 
         public Main()
         {
             InitializeComponent();
-            ClearCSGORoutingToolRules();
             Thread populateRoutesThread = new Thread(new ThreadStart(PopulateRoutes));
             populateRoutesThread.Start();
         }
 
-        private void ClearCSGORoutingToolRules()
+        private static dynamic GetFirewallPolicy()
         {
-            Type tNetFwPolicy2 = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
-            INetFwPolicy2 fwPolicy2 = (INetFwPolicy2)Activator.CreateInstance(tNetFwPolicy2);
-            foreach (INetFwRule rule in fwPolicy2.Rules)
+            return Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
+        }
+
+        private static string GetRuleName(string protocol, string routeName)
+        {
+            return RulePrefix + protocol + "-" + routeName;
+        }
+
+        // Returns the route name of a rule in the current naming format, or null if the name doesn't match it.
+        private static string ParseRouteName(string ruleName)
+        {
+            foreach (string protocol in RuleProtocols.Keys)
             {
-                if (rule.Name.Contains("CSGORoutingTool-")) { fwPolicy2.Rules.Remove(rule.Name); }
+                string protocolPrefix = GetRuleName(protocol, "");
+                if (ruleName.StartsWith(protocolPrefix) && ruleName.Length > protocolPrefix.Length)
+                {
+                    return ruleName.Substring(protocolPrefix.Length);
+                }
             }
+            return null;
+        }
+
+        // Rules can't be removed while enumerating, so they are collected first.
+        private static List<dynamic> GetToolRules(dynamic fwPolicy2)
+        {
+            List<dynamic> toolRules = new List<dynamic>();
+            foreach (dynamic rule in fwPolicy2.Rules)
+            {
+                string ruleName = rule.Name;
+                if (ruleName != null && ruleName.StartsWith(RulePrefix)) { toolRules.Add(rule); }
+            }
+            return toolRules;
+        }
+
+        private static List<string> GetRuleNames(List<dynamic> rules)
+        {
+            return rules.Select(rule => (string)rule.Name).ToList();
+        }
+
+        private static void RemoveRules(dynamic fwPolicy2, IEnumerable<string> ruleNames)
+        {
+            foreach (string ruleName in ruleNames)
+            {
+                try { fwPolicy2.Rules.Remove(ruleName); }
+                catch { }
+            }
+        }
+
+        private static void RemoveRouteRules(dynamic fwPolicy2, string routeName)
+        {
+            RemoveRules(fwPolicy2, RuleProtocols.Keys.Select(protocol => GetRuleName(protocol, routeName)));
         }
 
         private void PopulateRoutes()
         {
-            string raw = new WebClient().DownloadString(networkconfigURL);
-            JObject jObj = JsonConvert.DeserializeObject<JObject>(raw);
+            string raw = httpClient.GetStringAsync(networkconfigURL).GetAwaiter().GetResult();
+            JsonObject config = JsonNode.Parse(raw).AsObject();
 
-            foreach (KeyValuePair<string, JToken> rc in (JObject)jObj["pops"])
+            foreach (KeyValuePair<string, JsonNode> rc in config["pops"].AsObject())
             {
-                if (rc.Value.ToString().Contains("relays") && !rc.Value.ToString().Contains("cloud-test"))
+                JsonObject pop = rc.Value.AsObject();
+                if (pop["relays"] is JsonArray relays && !pop.ToJsonString().Contains("cloud-test"))
                 {
                     Route route = new Route();
                     route.name = rc.Key;
-                    if (rc.Value.ToString().Contains("\"desc\"")) { route.desc = rc.Value["desc"].ToString(); }
+                    if (pop["desc"] != null) { route.desc = pop["desc"].GetValue<string>(); }
                     route.ranges = new Dictionary<string, string>();
                     route.row_index = new List<int>();
-                    foreach (JObject range in rc.Value["relays"])
+                    foreach (JsonNode range in relays)
                     {
-                        Console.WriteLine(range["port_range"][0].ToString() + "-" + range["port_range"][1].ToString());
-                        route.ranges.Add(range["ipv4"].ToString(), range["port_range"].ToString());
+                        route.ranges.Add(range["ipv4"].GetValue<string>(), range["port_range"].ToJsonString());
                         route.row_index.Add(rowCount);
                         rowCount++;
                     }
-                    if (rc.Value.ToString().Contains("partners\": 2")) { route.pw = true; }
-                    else { route.pw = false; }
+                    route.pw = pop["partners"] != null && pop["partners"].GetValue<int>() == 2;
                     route.extended = false;
                     route.all_check = false;
                     routes.Add(route);
@@ -117,7 +173,7 @@ namespace SteamRouteTool
             if (firstLoad)
             {
                 PingRoutes();
-                GetCurrentBlocked();
+                RestoreBlockedRoutes();
             }
             firstLoad = false;
         }
@@ -186,62 +242,62 @@ namespace SteamRouteTool
                 if (pingreply.RoundtripTime == 0) { return "-1"; }
                 else { return pingreply.RoundtripTime.ToString(); }
             }
-            catch (Exception ex) { return "-1"; }
+            catch { return "-1"; }
         }
 
-        private void GetCurrentBlocked()
+        // Reads the blocked addresses from existing rules, removes every rule this tool owns,
+        // then re-applies fresh rules for routes that still exist in the current network config.
+        // Rules in an unknown format, for removed routes, or for relays that no longer exist are dropped.
+        private void RestoreBlockedRoutes()
         {
-            Type tNetFwPolicy2 = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
-            INetFwPolicy2 fwPolicy2 = (INetFwPolicy2)Activator.CreateInstance(tNetFwPolicy2);
+            dynamic fwPolicy2 = GetFirewallPolicy();
+            List<dynamic> toolRules = GetToolRules(fwPolicy2);
 
-            foreach (INetFwRule rule in fwPolicy2.Rules)
+            Dictionary<string, HashSet<string>> blockedAddresses = new Dictionary<string, HashSet<string>>();
+            foreach (dynamic rule in toolRules)
             {
-                if (rule.Name.Contains("SteamRouteTool-"))
-                {
-                    string name = rule.Name.Split('-')[1];
+                string routeName = ParseRouteName(rule.Name);
+                string remoteAddresses = rule.RemoteAddresses;
+                if (routeName == null || remoteAddresses == null) { continue; }
 
-                    List<string> addr = new List<string>();
-                    foreach (string tosplit in rule.RemoteAddresses.Split(',')) { addr.Add(tosplit.Split('/')[0]); }
-                    foreach (Route route in routes)
+                if (!blockedAddresses.ContainsKey(routeName)) { blockedAddresses[routeName] = new HashSet<string>(); }
+                foreach (string address in remoteAddresses.Split(',')) { blockedAddresses[routeName].Add(address.Split('/')[0]); }
+            }
+
+            RemoveRules(fwPolicy2, GetRuleNames(toolRules));
+
+            foreach (Route route in routes)
+            {
+                if (!blockedAddresses.ContainsKey(route.name)) { continue; }
+
+                HashSet<string> addresses = blockedAddresses[route.name];
+                string[] relays = route.ranges.Keys.ToArray();
+                bool anyBlocked = false;
+                for (int i = 0; i < relays.Length; i++)
+                {
+                    if (addresses.Contains(relays[i]))
                     {
-                        if (route.name == name)
-                        {
-                            bool extended = true;
-                            bool firstBlocked = false;
-                            int blockedCount = 0;
-                            for (int i = 0; i < route.ranges.Count; i++)
-                            {
-                                if (addr.Contains(route.ranges.Keys.ToArray()[i]))
-                                {
-                                    routeDataGrid.Rows[route.row_index[i]].Cells[2].Value = true;
-                                    if (i != 0) { blockedCount++;  }
-                                    if (i == 0) { firstBlocked = true; }
-                                }
-                            }
-                            if (blockedCount == route.ranges.Count-1 && firstBlocked)
-                            {
-                                extended = false;
-                            }
-                            route.extended = extended;
-                            if (extended)
-                            {
-                                foreach (int index in route.row_index) { routeDataGrid.Rows[index].Visible = true; }
-                            }
-                        }
+                        routeDataGrid.Rows[route.row_index[i]].Cells[2].Value = true;
+                        anyBlocked = true;
                     }
                 }
+                if (!anyBlocked) { continue; }
+
+                route.extended = !relays.All(relay => addresses.Contains(relay));
+                if (route.extended)
+                {
+                    foreach (int index in route.row_index) { routeDataGrid.Rows[index].Visible = true; }
+                }
+                SetRule(route);
             }
         }
 
         private void Btn_ClearRules_Click(object sender, EventArgs e)
         {
-            Type tNetFwPolicy2 = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
-            INetFwPolicy2 fwPolicy2 = (INetFwPolicy2)Activator.CreateInstance(tNetFwPolicy2);
-            foreach (INetFwRule rule in fwPolicy2.Rules)
-            {
-                if (rule.Name.Contains("SteamRouteTool-")) { fwPolicy2.Rules.Remove(rule.Name); }
-                for (int i = 0; i < routes.Count; i++) { routeDataGrid.Rows[i].Cells[2].Value = false; }
-            }
+            dynamic fwPolicy2 = GetFirewallPolicy();
+            RemoveRules(fwPolicy2, GetRuleNames(GetToolRules(fwPolicy2)));
+            for (int i = 0; i < routeDataGrid.Rows.Count; i++) { routeDataGrid.Rows[i].Cells[2].Value = false; }
+            columnChecked = false;
             MessageBox.Show("You have cleared all firewall rules created by this tool.", "Steam Route Tool - Rules Clear");
         }
 
@@ -354,6 +410,10 @@ namespace SteamRouteTool
                     {
                         routeDataGrid.Rows[i].Cells[2].Value = false;
                     }
+                    foreach (Route route in routes)
+                    {
+                        SetRule(route);
+                    }
                     columnChecked = false;
                 }
             }
@@ -361,54 +421,45 @@ namespace SteamRouteTool
 
         private void SetRule(Route route)
         {
-            Type tNetFwPolicy2 = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
-            INetFwPolicy2 fwPolicy2 = (INetFwPolicy2)Activator.CreateInstance(tNetFwPolicy2);
-            try { fwPolicy2.Rules.Remove("SteamRouteTool-" + route.name); }
-            catch { }
+            dynamic fwPolicy2 = GetFirewallPolicy();
+            RemoveRouteRules(fwPolicy2, route.name);
 
-            INetFwRule fwRule = (INetFwRule2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
-
-            fwRule.Enabled = true;
-            fwRule.Direction = NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_OUT;
-            fwRule.Action = NET_FW_ACTION_.NET_FW_ACTION_BLOCK;
-
-            string remoteAddresses = "";
-
-            int index = 0;
-            for (int i = 0; i < route.ranges.Count; i++)
+            List<string> blockedRelays = new List<string>();
+            string[] relays = route.ranges.Keys.ToArray();
+            for (int i = 0; i < relays.Length; i++)
             {
                 if ((bool)routeDataGrid.Rows[route.row_index[i]].Cells[2].Value)
                 {
-                    if (index == 0 && route.all_check)
+                    // A checked collapsed route row blocks every relay at that location.
+                    if (i == 0 && route.all_check)
                     {
-                        foreach (KeyValuePair<string,string> range in route.ranges)
-                        {
-                            remoteAddresses += range.Key + ",";
-                        }
+                        blockedRelays = relays.ToList();
                         break;
                     }
-                    else
-                    {
-                        remoteAddresses += route.ranges.Keys.ToArray()[index] + ",";
-                    }
+                    blockedRelays.Add(relays[i]);
                 }
-                index++;
             }
-            if (remoteAddresses != "")
+            if (blockedRelays.Count == 0) { return; }
+
+            string remoteAddresses = string.Join(",", blockedRelays);
+            foreach (KeyValuePair<string, int> protocol in RuleProtocols)
             {
-                remoteAddresses = remoteAddresses.Substring(0, remoteAddresses.Length - 1);
-                fwRule.RemoteAddresses = remoteAddresses;
-                fwRule.Protocol = 17;
-                fwRule.RemotePorts = "27015-27068";
-                fwRule.Name = "SteamRouteTool-" + route.name;
-                INetFwPolicy2 firewallPolicy = (INetFwPolicy2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
-                firewallPolicy.Rules.Add(fwRule);
+                dynamic rule = Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
+                rule.Name = GetRuleName(protocol.Key, route.name);
+                rule.Enabled = true;
+                rule.Direction = NET_FW_RULE_DIR_OUT;
+                rule.Action = NET_FW_ACTION_BLOCK;
+                // Protocol must be set before ports; ICMP has no ports.
+                rule.Protocol = protocol.Value;
+                if (protocol.Key != "ICMP") { rule.RemotePorts = GamePorts; }
+                rule.RemoteAddresses = remoteAddresses;
+                fwPolicy2.Rules.Add(rule);
             }
         }
 
         private void Btn_About_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Version: " + ProductVersion + Environment.NewLine + "Steam Route Tool is created by Froody.", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Version: " + ProductVersion + Environment.NewLine + "Steam Route Tool was created by Froody (2019)." + Environment.NewLine + "Updated by eyyMinda (2026).", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
