@@ -2,7 +2,7 @@
 
 A tool for blocking routes in Steam games that use Valve's SDR (Steam Datagram Relay) network config.
 
-Current version: **1.0.8**. See [CHANGELOG.md](CHANGELOG.md) for release history.
+Current version: **1.0.9**. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Supports:
 
@@ -25,7 +25,7 @@ On launch, the tool reads its existing `SteamRouteTool-` rules, shows what's blo
 - Click "Blocked" to toggle all checkboxes.
 - Click a ping value to re-ping that specific relay.
 - Clear Rules will clear all firewall rules.
-- Ping Routes will ping all shown routes and update their values. Pings are sent one at a time (many routers drop replies when several are in flight), so values fill in from top to bottom; `-1` means no reply within 1 second.
+- Ping Routes will ping all shown routes and update their values. Pings are sent one at a time (many routers drop replies when several are in flight), so values fill in from top to bottom. A collapsed route shows the best ping of its relays; `-1` means none of them replied within 1 second.
 
 ## Building
 

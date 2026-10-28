@@ -17,6 +17,9 @@ public partial class Main : Form
     readonly HashSet<Pop> expandedPops = new HashSet<Pop>();
     // The route and relay shown in each grid row. Every relay has a row; collapsed routes only show their first one.
     readonly List<(Pop Pop, int RelayIndex)> rows = new List<(Pop Pop, int RelayIndex)>();
+    // Last ping result per relay (null = no reply) and relays with a ping queued or in progress.
+    readonly Dictionary<Relay, int?> pingResults = new Dictionary<Relay, int?>();
+    readonly HashSet<Relay> pendingPings = new HashSet<Relay>();
     // Firewall changes from clicks wait until the rules have been synced on launch.
     bool firewallReady;
 
@@ -121,7 +124,7 @@ public partial class Main : Form
         RefreshGrid();
     }
 
-    // Updates names, visibility and checkboxes from the view state.
+    // Updates names, visibility, pings and checkboxes from the view state.
     private void RefreshGrid()
     {
         // The current cell can't be in a row that gets hidden.
@@ -134,6 +137,29 @@ public partial class Main : Form
             row.Visible = expanded || relayIndex == 0;
             row.Cells[colName.Index].Value = GetRowName(pop, relayIndex, expanded);
             row.Cells[colBlocked.Index].Value = expanded ? ToCheckState(blockedRelays.Contains(pop.Relays[relayIndex])) : GetBlockedState(pop);
+            RefreshPingCell(rowIndex);
+        }
+    }
+
+    // An expanded row shows its relay's ping; a collapsed route shows the best ping of any of its relays.
+    private void RefreshPingCell(int rowIndex)
+    {
+        (Pop pop, int relayIndex) = rows[rowIndex];
+        IReadOnlyList<Relay> relays = expandedPops.Contains(pop) ? [pop.Relays[relayIndex]] : pop.Relays;
+        DataGridViewCell cell = routeDataGrid.Rows[rowIndex].Cells[colPing.Index];
+
+        int? best = relays.Where(pingResults.ContainsKey).Select(relay => pingResults[relay]).Min();
+        if (best != null) { (cell.Value, cell.Style.ForeColor) = (best.ToString(), GetPingColor(best)); }
+        else if (relays.Any(pendingPings.Contains)) { (cell.Value, cell.Style.ForeColor) = ("…", Color.Gray); }
+        else if (relays.Any(pingResults.ContainsKey)) { (cell.Value, cell.Style.ForeColor) = ("-1", GetPingColor(null)); }
+        else { cell.Value = ""; }
+    }
+
+    private void RefreshPingCells(Pop pop)
+    {
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            if (rows[rowIndex].Pop == pop) { RefreshPingCell(rowIndex); }
         }
     }
 
@@ -223,29 +249,42 @@ public partial class Main : Form
         return Color.Red;
     }
 
-    // Awaited on the UI thread, so the grid is only ever updated from the UI thread.
-    private async Task PingRowAsync(int rowIndex)
+    // Pings the given relays of a route in order. Awaited on the UI thread, so the grid is only updated from the UI thread.
+    // With stopAtFirstReply, relays are only tried until one answers: enough for a collapsed route, which shows its best ping.
+    private async Task PingRelaysAsync(Pop pop, IReadOnlyList<Relay> relays, bool stopAtFirstReply)
     {
-        (Pop pop, int relayIndex) = rows[rowIndex];
-        DataGridViewCell cell = routeDataGrid.Rows[rowIndex].Cells[colPing.Index];
-        cell.Style.ForeColor = Color.Gray;
-        cell.Value = "…";
-        int? responseTime = await pingService.PingAsync(pop.Relays[relayIndex].Address);
-        if (IsDisposed) { return; }
-        cell.Style.ForeColor = GetPingColor(responseTime);
-        cell.Value = responseTime?.ToString() ?? "-1";
+        foreach (Relay relay in relays)
+        {
+            pingResults.Remove(relay);
+            pendingPings.Add(relay);
+        }
+        RefreshPingCells(pop);
+
+        foreach (Relay relay in relays)
+        {
+            int? responseTime = await pingService.PingAsync(relay.Address);
+            if (IsDisposed) { return; }
+            pendingPings.Remove(relay);
+            pingResults[relay] = responseTime;
+            RefreshPingCells(pop);
+            if (stopAtFirstReply && responseTime != null) { break; }
+        }
+
+        pendingPings.ExceptWith(relays);
+        RefreshPingCells(pop);
     }
 
+    // An expanded route pings every relay; a collapsed one stops at the first relay that answers.
     private Task PingPopAsync(Pop pop)
     {
-        return Task.WhenAll(Enumerable.Range(0, rows.Count).Where(rowIndex => rows[rowIndex].Pop == pop).Select(PingRowAsync));
+        return PingRelaysAsync(pop, pop.Relays, stopAtFirstReply: !expandedPops.Contains(pop));
     }
 
-    // Pings go out one at a time (see PingService), so only the rows that are shown are pinged, top to bottom.
+    // Pings go out one at a time (see PingService), so routes are pinged top to bottom.
     private async Task PingAllAsync()
     {
         btn_PingRoutes.Enabled = false;
-        await Task.WhenAll(Enumerable.Range(0, rows.Count).Where(rowIndex => routeDataGrid.Rows[rowIndex].Visible).Select(PingRowAsync));
+        await Task.WhenAll(pops.Select(PingPopAsync));
         if (IsDisposed) { return; }
         btn_PingRoutes.Enabled = true;
     }
@@ -276,13 +315,16 @@ public partial class Main : Form
         (Pop pop, int relayIndex) = rows[e.RowIndex];
         if (e.ColumnIndex == colName.Index && pop.Relays.Count > 1)
         {
-            if (!expandedPops.Remove(pop)) { expandedPops.Add(pop); }
+            // Expanding pings each relay; collapsing just shows the best of the results already known.
+            bool expanding = expandedPops.Add(pop);
+            if (!expanding) { expandedPops.Remove(pop); }
             RefreshGrid();
-            _ = PingPopAsync(pop);
+            if (expanding) { _ = PingPopAsync(pop); }
         }
         else if (e.ColumnIndex == colPing.Index)
         {
-            _ = PingRowAsync(e.RowIndex);
+            if (expandedPops.Contains(pop)) { _ = PingRelaysAsync(pop, [pop.Relays[relayIndex]], stopAtFirstReply: false); }
+            else { _ = PingPopAsync(pop); }
         }
         else if (e.ColumnIndex == colBlocked.Index && firewallReady)
         {

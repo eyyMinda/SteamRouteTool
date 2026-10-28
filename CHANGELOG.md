@@ -3,6 +3,18 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [1.0.9] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Fixed
+
+- A collapsed route showed `-1` whenever its first relay didn't answer pings, even if its other relays did. Collapsed routes now try their relays in order until one answers and show the best known ping; `-1` only means none of the tried relays answered.
+
+### Changed
+
+- Ping results are remembered per relay, so collapsing a route shows the best result right away instead of pinging again.
+
 ## [1.0.8] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
