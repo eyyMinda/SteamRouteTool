@@ -2,6 +2,7 @@ name: Release
 
 # Push a tag matching the project version to publish a release, e.g.:
 #   git tag v1.0.7 && git push origin v1.0.7
+# Works from main and from maintenance branches (release/1.x): the tag's commit is built.
 on:
   push:
     tags: ["v*"]
@@ -67,4 +68,10 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:TAG release/* --title "SteamRouteTool $env:VERSION" --notes-file notes.md
+        run: |
+          # Only the highest version becomes "Latest", so a fix released from a release/* branch (e.g. 1.1.1 after 2.0.0)
+          # doesn't replace the newest major version as the main download.
+          $released = gh release list --limit 100 --json tagName --jq '.[].tagName' |
+            Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } | ForEach-Object { [version]$_.Substring(1) }
+          $isLatest = -not ($released | Where-Object { $_ -gt [version]$env:VERSION })
+          gh release create $env:TAG release/* --title "SteamRouteTool $env:VERSION" --notes-file notes.md "--latest=$($isLatest.ToString().ToLower())"
