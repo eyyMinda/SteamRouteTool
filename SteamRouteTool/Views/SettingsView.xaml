@@ -1,0 +1,54 @@
+<UserControl x:Class="SteamRouteTool.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+      <TextBlock Text="Settings" Style="{StaticResource PageTitle}" Margin="0,0,0,16" />
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
+          <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="160"
+                    VerticalAlignment="Center" AutomationProperties.Name="Theme" />
+          <StackPanel>
+            <TextBlock Text="Theme" FontWeight="SemiBold" />
+            <TextBlock Text="System follows your Windows light or dark mode." Style="{StaticResource SecondaryText}" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
+          <CheckBox DockPanel.Dock="Right" IsChecked="{Binding PingOnStartup}" VerticalAlignment="Center" AutomationProperties.Name="Ping routes automatically" />
+          <StackPanel>
+            <TextBlock Text="Ping routes automatically" FontWeight="SemiBold" />
+            <TextBlock Text="Ping every route when the app starts or you switch games. Without it, the last known pings are shown until you click Ping all."
+                       Style="{StaticResource SecondaryText}" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Open folder" Command="{Binding OpenSettingsFolderCommand}" VerticalAlignment="Center" />
+          <StackPanel>
+            <TextBlock Text="Settings and game profiles" FontWeight="SemiBold" />
+            <TextBlock Text="Your settings, each game's blocked routes and the last known pings are stored here:" Style="{StaticResource SecondaryText}" />
+            <TextBox Text="{Binding SettingsFolder, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="Consolas" Padding="0,4" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Open Windows Firewall" Command="{Binding OpenFirewallCommand}" VerticalAlignment="Center" />
+          <StackPanel>
+            <TextBlock Text="Firewall rules" FontWeight="SemiBold" />
+            <TextBlock Style="{StaticResource SecondaryText}">
+              Blocked routes are outbound rules named SteamRouteTool-UDP/TCP/ICMP-&lt;route&gt;, grouped under SteamRouteTool.
+            </TextBlock>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -1,0 +1,40 @@
+<Window x:Class="SteamRouteTool.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Steam Route Tool"
+        Icon="wifi.ico"
+        Width="1100" Height="720" MinWidth="860" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="220" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Navigation -->
+    <DockPanel Grid.Column="0" Margin="8,12,8,12">
+      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="12,0,12,20">
+        <Image Source="wifi.ico" Width="22" Height="22" />
+        <TextBlock Text="Steam Route Tool" FontSize="15" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock DockPanel.Dock="Bottom" Text="{Binding VersionText}" Style="{StaticResource SecondaryText}" Margin="12,8" />
+      <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}" BorderThickness="0" Background="Transparent"
+               AutomationProperties.Name="Pages">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Horizontal" Margin="4,6">
+              <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" Width="30" />
+              <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+
+    <!-- Page -->
+    <Border Grid.Column="1" Background="{DynamicResource LayerFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1,1,0,0" CornerRadius="8,0,0,0">
+      <ContentControl Content="{Binding SelectedPage.Content}" Margin="28,20,28,16" Focusable="False" />
+    </Border>
+  </Grid>
+</Window>

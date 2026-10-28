@@ -67,6 +67,21 @@ public class SdrConfigClientTests
     }
 
     [Fact]
+    public void ParsePops_AssignsRegions()
+    {
+        const string config = """
+            { "pops": {
+              "ams": { "desc": "Amsterdam (Netherlands)", "geo": [4.9, 52.37], "relays": [ { "ipv4": "155.133.248.36", "port_range": [27015, 27060] } ] },
+              "new": { "desc": "Somewhere new", "geo": [151.21, -33.86], "relays": [ { "ipv4": "10.0.0.1", "port_range": [27015, 27060] } ] }
+            } }
+            """;
+
+        IReadOnlyList<Pop> pops = SdrConfigClient.ParsePops(config);
+
+        Assert.Equal([RegionClassifier.Europe, RegionClassifier.Oceania], pops.Select(pop => pop.Region));
+    }
+
+    [Fact]
     public void ParsePops_ThrowsWhenPopsSectionIsMissing()
     {
         Assert.Throws<InvalidDataException>(() => SdrConfigClient.ParsePops("""{ "revision": 1 }"""));

@@ -3,21 +3,19 @@ using SteamRouteTool.Models;
 
 namespace SteamRouteTool.Services;
 
-/// <summary>Downloads and parses Steam's SDR network config (the list of routes and their relays).</summary>
+/// <summary>Downloads and parses Steam's SDR network config (the list of routes and their relays) for a game.</summary>
 public sealed class SdrConfigClient
 {
     readonly HttpClient httpClient;
-    readonly string configUrl;
 
-    public SdrConfigClient(HttpClient httpClient, int appId = 730)
+    public SdrConfigClient(HttpClient httpClient)
     {
         this.httpClient = httpClient;
-        configUrl = "https://api.steampowered.com/ISteamApps/GetSDRConfig/v1?appid=" + appId;
     }
 
-    public async Task<IReadOnlyList<Pop>> GetPopsAsync()
+    public async Task<IReadOnlyList<Pop>> GetPopsAsync(int appId)
     {
-        string json = await httpClient.GetStringAsync(configUrl);
+        string json = await httpClient.GetStringAsync("https://api.steampowered.com/ISteamApps/GetSDRConfig/v1?appid=" + appId);
         return ParsePops(json);
     }
 
@@ -34,7 +32,10 @@ public sealed class SdrConfigClient
 
             string description = entry["desc"]?.GetValue<string>() ?? code;
             List<Relay> parsedRelays = relays.Select(relay => ParseRelay(code, relay)).ToList();
-            pops.Add(new Pop(code, description, parsedRelays));
+            (double? longitude, double? latitude) = entry["geo"] is JsonArray { Count: 2 } geo
+                ? (geo[0]?.GetValue<double>(), geo[1]?.GetValue<double>())
+                : (null, null);
+            pops.Add(new Pop(code, description, parsedRelays, RegionClassifier.Classify(description, longitude, latitude)));
         }
         return pops;
     }

@@ -1,0 +1,127 @@
+<Application x:Class="SteamRouteTool.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:SteamRouteTool.ViewModels"
+             xmlns:views="clr-namespace:SteamRouteTool.Views"
+             xmlns:converters="clr-namespace:SteamRouteTool.Converters"
+             ThemeMode="System"
+             ShutdownMode="OnMainWindowClose">
+  <Application.Resources>
+    <ResourceDictionary>
+      <!-- Pages: each view model in the navigation is shown with its view. -->
+      <DataTemplate DataType="{x:Type vm:RoutesViewModel}">
+        <views:RoutesView />
+      </DataTemplate>
+      <DataTemplate DataType="{x:Type vm:HowToViewModel}">
+        <views:HowToView />
+      </DataTemplate>
+      <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+        <views:SettingsView />
+      </DataTemplate>
+      <DataTemplate DataType="{x:Type vm:AboutViewModel}">
+        <views:AboutView />
+      </DataTemplate>
+
+      <converters:VisibleWhenConverter x:Key="VisibleWhen" />
+      <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+      <Style x:Key="PageTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+      </Style>
+      <Style x:Key="SectionTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+      </Style>
+      <Style x:Key="BodyText" TargetType="TextBlock">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="22" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+      </Style>
+      <Style x:Key="SecondaryText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+      </Style>
+      <Style x:Key="Icon" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+      </Style>
+      <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="20,16" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+      </Style>
+
+      <!-- Ping values: green / amber / red by latency, muted for stale, pending or blocked. -->
+      <Style x:Key="PingText" TargetType="TextBlock">
+        <Setter Property="Text" Value="{Binding Ping.Text}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding Ping.Level}" Value="Good">
+            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Ping.Level}" Value="Fair">
+            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Ping.Level}" Value="Poor">
+            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Ping.Level}" Value="Failed">
+            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Ping.Level}" Value="Stale">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Ping.Level}" Value="Blocked">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+
+      <!-- A borderless button around a ping value: click to ping again. -->
+      <Style x:Key="PingButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTip" Value="Ping again" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border Background="Transparent" Padding="0,4">
+                <ContentPresenter />
+              </Border>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <!-- A chevron that expands a route to show its relays. -->
+      <Style x:Key="ExpandToggle" TargetType="ToggleButton">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="ToggleButton">
+              <Border Background="Transparent">
+                <TextBlock x:Name="Glyph" Text="&#xE76C;" FontFamily="{StaticResource IconFont}" FontSize="12"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                  <Setter TargetName="Glyph" Property="Text" Value="&#xE70D;" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

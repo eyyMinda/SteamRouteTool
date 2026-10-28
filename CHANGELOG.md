@@ -3,6 +3,34 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.0] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+A complete redesign: Steam Route Tool is now a full Windows 10/11 app instead of a small fixed window.
+
+### Added
+
+- **New interface** with a sidebar (Routes, How to use, Settings, About), a resizable window, and the Windows 11 (Fluent) look in light or dark mode.
+- **Game selector:** Counter-Strike 2, Dota 2 and Deadlock, each with its own route list from Steam.
+- **Game profiles:** each game remembers its blocked routes and applies them to the firewall when you switch to it.
+- **Search and filters:** search by name, code or region; filter by region and by blocked state; clear all filters at once.
+- **Regions:** routes are grouped by region (Europe, North America, South America, Asia, Middle East, Africa, Oceania), or shown as one flat list.
+- **Sorting** by route, region, relay count, ping or blocked state.
+- **Block all except shown:** keep only the routes your search or filters show (e.g. one region) and block everything else.
+- **Block all** and **Unblock all** actions.
+- **Relay details:** expanding a route shows each relay's address, ports and ping, and lets you block relays individually.
+- **How to use** page with getting started steps, tips and troubleshooting.
+- **Settings:** theme (System, Light, Dark), automatic pinging on or off, and shortcuts to the settings folder and Windows Firewall.
+- **About** page with version, update check against the latest GitHub release, links to the changelog, releases, source code and issue tracker, credits and license.
+- Errors and confirmations appear as banners on the page instead of pop-up dialogs.
+
+### Changed
+
+- Pings show as e.g. "30 ms"; failed pings show "no reply" instead of `-1`.
+- Built with WPF instead of WinForms. The download is a larger self-contained exe (about 62 MB).
+- Settings, game profiles and cached pings are stored in `%LOCALAPPDATA%\SteamRouteTool`.
+
 ## [1.1.1] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
