@@ -44,6 +44,8 @@ jobs:
 
       - name: Package and write release notes
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           New-Item -ItemType Directory release | Out-Null
           $exe = "SteamRouteTool-$env:VERSION-win-x64.exe"
@@ -51,13 +53,23 @@ jobs:
           $hash = (Get-FileHash "release/$exe" -Algorithm SHA256).Hash.ToLower()
           Set-Content release/SHA256SUMS.txt "$hash  $exe" -Encoding ascii
 
-          # Use this version's CHANGELOG.md section as the release notes.
-          $lines = Get-Content CHANGELOG.md
-          $start = [array]::IndexOf($lines, ($lines | Where-Object { $_ -like "## ``[$env:VERSION``]*" } | Select-Object -First 1))
-          if ($start -lt 0) { throw "CHANGELOG.md has no section for $env:VERSION." }
-          $end = $start + 1
-          while ($end -lt $lines.Count -and -not $lines[$end].StartsWith("## [")) { $end++ }
-          $notes = $lines[($start + 1)..($end - 1)] + @(
+          # Release notes: every CHANGELOG.md section newer than the previous release, so versions that were never
+          # released on their own (e.g. 2.0.0-2.0.4 before 2.0.5) are included. On release/* branches this is just the fix.
+          $current = [version]$env:VERSION
+          $previous = gh release list --limit 100 --json tagName --jq '.[].tagName' |
+            Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } | ForEach-Object { [version]$_.Substring(1) } |
+            Where-Object { $_ -lt $current } | Sort-Object -Descending | Select-Object -First 1
+          $sections = New-Object System.Collections.Generic.List[string]
+          $include = $false
+          foreach ($line in Get-Content CHANGELOG.md) {
+            if ($line -match '^## \[(\d+\.\d+\.\d+)\]') {
+              $version = [version]$Matches[1]
+              $include = $version -le $current -and ($null -eq $previous -or $version -gt $previous)
+            }
+            if ($include) { $sections.Add($line) }
+          }
+          if (-not ($sections | Where-Object { $_ -like "## ``[$env:VERSION``]*" })) { throw "CHANGELOG.md has no section for $env:VERSION." }
+          $notes = @($sections) + @(
             "",
             "---",
             "**Download:** ``$exe`` is self-contained: no .NET install needed. Windows may show a SmartScreen warning for this unsigned exe; choose **More info**, then **Run anyway**. Verify the download against ``SHA256SUMS.txt``."

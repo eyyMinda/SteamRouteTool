@@ -49,41 +49,77 @@
       <Button Grid.Column="4" Content="Clear filters" Command="{Binding ClearFiltersCommand}" Margin="10,0,0,0" />
     </Grid>
 
-    <!-- Actions -->
-    <WrapPanel Grid.Row="2" Margin="0,0,0,4">
-      <Button Command="{Binding PingAllCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,6"
-              ToolTip="Ping every route again">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Text="&#xE9D9;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-          <TextBlock Text="Ping all" />
-        </StackPanel>
-      </Button>
-      <Button Command="{Binding RefreshCommand}" Margin="0,0,20,6" ToolTip="Reload the route list from Steam and re-read the firewall rules">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-          <TextBlock Text="Refresh routes" />
-        </StackPanel>
-      </Button>
-      <Button Command="{Binding BlockAllExceptShownCommand}" Margin="0,0,8,6"
-              ToolTip="Keep only the routes the search and filters show (e.g. one region) and block all others">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Text="&#xE71C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-          <TextBlock Text="Block all except shown" />
-        </StackPanel>
-      </Button>
-      <Button Command="{Binding UnblockAllCommand}" Margin="0,0,8,6" ToolTip="Unblock every route and remove all of the tool's firewall rules">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Text="&#xE785;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-          <TextBlock Text="Unblock all" />
-        </StackPanel>
-      </Button>
-      <Button Command="{Binding BlockAllCommand}" Margin="0,0,8,6" ToolTip="Block every route">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-          <TextBlock Text="Block all" />
-        </StackPanel>
-      </Button>
-    </WrapPanel>
+    <!-- Actions; Auto select is the prominent one, on the right -->
+    <DockPanel Grid.Row="2" Margin="0,0,0,4">
+      <StackPanel x:Name="AutoSelectSplit" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="16,0,0,6">
+        <Button Command="{Binding ApplyAutoSelectCommand}" Style="{StaticResource AutoSelectButton}"
+                ToolTip="Keep only the fastest routes by ping and block all others" AutomationProperties.Name="Auto select">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE945;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+            <TextBlock Text="Auto select" />
+            <TextBlock Text="{Binding AutoSelectLabel, StringFormat=' · {0}'}" FontWeight="Normal" />
+          </StackPanel>
+        </Button>
+        <ToggleButton IsChecked="{Binding IsAutoSelectOpen}" Style="{StaticResource AutoSelectArrow}"
+                      ToolTip="Choose how many routes to keep" AutomationProperties.Name="Auto select options" />
+      </StackPanel>
+      <Popup x:Name="AutoSelectPopup" IsOpen="{Binding IsAutoSelectOpen}" PlacementTarget="{Binding ElementName=AutoSelectSplit}" Placement="Custom"
+             StaysOpen="False" AllowsTransparency="True">
+        <Border Width="380" Padding="16" CornerRadius="8" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+          <StackPanel>
+            <TextBlock Text="Auto select" FontWeight="SemiBold" />
+            <TextBlock Text="Keeps the fastest routes by their best known ping and blocks every other route."
+                       Style="{StaticResource SecondaryText}" />
+            <DockPanel Margin="0,12,0,0">
+              <TextBlock DockPanel.Dock="Right" Text="{Binding AutoRouteCount, StringFormat='{}{0} routes'}" Width="70"
+                         TextAlignment="Right" VerticalAlignment="Center" />
+              <TextBlock DockPanel.Dock="Left" Text="Keep the fastest" VerticalAlignment="Center" Margin="0,0,12,0" />
+              <Slider Minimum="1" Maximum="20" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                      Value="{Binding AutoRouteCount, Delay=200}" AutomationProperties.Name="Routes to keep" />
+            </DockPanel>
+            <TextBlock Text="{Binding AutoSelectPreview}" TextWrapping="Wrap" Margin="0,12,0,0" />
+            <Button Content="Apply" Style="{StaticResource AutoSelectButton}" Tag="4" Command="{Binding ApplyAutoSelectCommand}"
+                    HorizontalAlignment="Right" Margin="0,12,0,0" AutomationProperties.Name="Apply auto select" />
+          </StackPanel>
+        </Border>
+      </Popup>
+      <WrapPanel>
+        <Button Command="{Binding PingAllCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,6"
+                ToolTip="Ping every route again">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE9D9;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+            <TextBlock Text="Ping all" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding RefreshCommand}" Margin="0,0,12,6" ToolTip="Reload the route list from Steam and re-read the firewall rules">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+            <TextBlock Text="Refresh routes" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding BlockAllExceptShownCommand}" Margin="0,0,8,6"
+                ToolTip="Keep only the routes the search and filters show (e.g. one region) and block all others">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE71C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+            <TextBlock Text="Block all except shown" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding UnblockAllCommand}" Margin="0,0,8,6" ToolTip="Unblock every route and remove all of the tool's firewall rules">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE785;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+            <TextBlock Text="Unblock all" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding BlockAllCommand}" Margin="0,0,8,6" ToolTip="Block every route">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+            <TextBlock Text="Block all" />
+          </StackPanel>
+        </Button>
+      </WrapPanel>
+    </DockPanel>
 
     <!-- Progress and messages -->
     <StackPanel Grid.Row="3">
@@ -104,6 +140,8 @@
               Visibility="{Binding StatusMessage, Converter={StaticResource VisibleWhen}}">
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissMessagesCommand}" Margin="8,0,0,0" VerticalAlignment="Center" />
+          <Button DockPanel.Dock="Right" Content="Undo" Command="{Binding UndoAutoSelectCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+                  Visibility="{Binding CanUndoAutoSelect, Converter={StaticResource VisibleWhen}}" AutomationProperties.Name="Undo auto select" />
           <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,10,0" />
           <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
         </DockPanel>

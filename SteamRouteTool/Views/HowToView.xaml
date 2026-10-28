@@ -22,7 +22,7 @@
           <TextBlock Style="{StaticResource BodyText}">2. Wait for the pings to fill in. Green is under 50 ms, amber under 100 ms, red above.</TextBlock>
           <TextBlock Style="{StaticResource BodyText}">3. Tick <Bold>Blocked</Bold> on every route you don't want to play on. The firewall rule is created immediately.</TextBlock>
           <TextBlock Style="{StaticResource BodyText}">4. Start (or restart) matchmaking in the game. Blocked locations aren't used anymore.</TextBlock>
-          <TextBlock Style="{StaticResource BodyText}">5. When you're done, use <Bold>Unblock all</Bold> to remove every rule, or just leave them: they stay until you change them.</TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">5. When you're done, use <Bold>Unblock all</Bold> to remove every rule, or leave them: they stay until you change them. To block only while the app is open, turn on <Bold>Unblock all routes when closing</Bold> in Settings.</TextBlock>
         </StackPanel>
       </Border>
 
@@ -32,6 +32,12 @@
           <TextBlock Style="{StaticResource BodyText}">
             <Bold>Only play in one region:</Bold> choose the region (for example Europe) in the region filter and click <Bold>Block all except shown</Bold>.
             Every other route is blocked and the shown ones are unblocked. This works with the search box too.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            <Bold>Let the app choose:</Bold> click the blue <Bold>Auto select</Bold> button to keep the 5 fastest routes and block all others.
+            Use the arrow next to it to keep more or fewer routes (with a preview), and <Bold>Undo</Bold> in the confirmation if you change your mind.
+            It uses each route's best known ping; blocked routes can't be pinged, so for them the last measured ping is used.
+            For the most accurate result, click <Bold>Unblock all</Bold> and <Bold>Ping all</Bold> first.
           </TextBlock>
           <TextBlock Style="{StaticResource BodyText}">
             <Bold>Individual relays:</Bold> most locations have several relay servers. Click the arrow next to a route to show them and block single relays.
