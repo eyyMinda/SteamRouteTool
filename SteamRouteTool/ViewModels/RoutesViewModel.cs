@@ -132,7 +132,19 @@ public sealed partial class RoutesViewModel : ObservableObject
     {
         if (initialized) { return; }
         initialized = true;
-        await LoadGameAsync(SelectedGame, fromFirewall: true);
+        // With "unblock on exit", the rules were removed on purpose when the app closed, so the saved profile (not the
+        // empty firewall) says what should be blocked. Otherwise the firewall is the truth.
+        await LoadGameAsync(SelectedGame, fromFirewall: !settings.UnblockOnExit);
+    }
+
+    /// <summary>Removes every rule this tool owns, for "unblock on exit". Blocks the caller; failures are ignored.</summary>
+    public void RemoveRulesOnExit()
+    {
+        try
+        {
+            firewall.RemoveAllRules();
+        }
+        catch (Exception ex) when (FirewallService.IsFirewallError(ex)) { }
     }
 
     partial void OnSelectedGameChanged(Game value)
@@ -181,7 +193,8 @@ public sealed partial class RoutesViewModel : ObservableObject
         {
             HashSet<string> addresses = profile.BlockedRelays.ToHashSet();
             blocked = loaded.SelectMany(pop => pop.Relays).Where(relay => addresses.Contains(relay.Address)).ToHashSet();
-            appliedMessage = $"Applied your saved {game.Name} profile to the firewall ({CountBlockedRoutes(loaded, blocked)} routes blocked).";
+            int blockedRoutes = CountBlockedRoutes(loaded, blocked);
+            appliedMessage = $"Applied your saved {game.Name} profile to the firewall ({blockedRoutes} {(blockedRoutes == 1 ? "route" : "routes")} blocked).";
         }
         else
         {

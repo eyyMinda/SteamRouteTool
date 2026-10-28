@@ -8,6 +8,8 @@ public sealed class AppSettings
     public string Theme { get; set; } = "System";
     public bool PingOnStartup { get; set; } = true;
     public bool GroupByRegion { get; set; } = true;
+    /// <summary>Remove all firewall rules when the app closes, and re-apply the game's profile when it starts.</summary>
+    public bool UnblockOnExit { get; set; }
     public int LastAppId { get; set; } = Models.Game.CounterStrike2;
     /// <summary>Saved block profile per game (by app ID), applied to the firewall when switching to that game.</summary>
     public Dictionary<int, GameProfile> Profiles { get; set; } = new Dictionary<int, GameProfile>();

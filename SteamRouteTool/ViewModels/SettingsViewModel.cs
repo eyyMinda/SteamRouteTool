@@ -15,6 +15,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.settings = settings;
         theme = settings.Theme;
         pingOnStartup = settings.PingOnStartup;
+        unblockOnExit = settings.UnblockOnExit;
+    }
+
+    [ObservableProperty]
+    bool unblockOnExit;
+
+    partial void OnUnblockOnExitChanged(bool value)
+    {
+        settings.UnblockOnExit = value;
+        store.Save(settings);
     }
 
     public IReadOnlyList<string> ThemeOptions { get; } = ["System", "Light", "Dark"];

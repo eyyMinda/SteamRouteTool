@@ -3,6 +3,18 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.3] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Unblock all routes when closing** (Settings): routes are only blocked while the app is open. Closing it (close button, Alt+F4, signing out or shutting down) removes all its firewall rules; your selection is kept and applied again on the next start. If the app is ended from Task Manager, the rules stay until it starts again.
+
+### Fixed
+
+- "1 routes blocked" in the profile message now reads "1 route blocked".
+
 ## [2.0.2] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

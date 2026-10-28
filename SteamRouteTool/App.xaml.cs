@@ -39,7 +39,18 @@ public partial class App : Application
         MainViewModel main = new MainViewModel(routes, new SettingsViewModel(settingsStore, settings), new AboutViewModel(new UpdateChecker(httpClient)));
 
         MainWindow window = new MainWindow() { DataContext = main };
-        window.Closing += (sender, args) => routes.SavePingCache();
+        // Closing covers the close button and Alt+F4; SessionEnding covers signing out and shutting down.
+        // Being ended from Task Manager or crashing skips this; the next launch then re-applies the saved profile.
+        bool cleanedUp = false;
+        void CleanUp()
+        {
+            if (cleanedUp) { return; }
+            cleanedUp = true;
+            routes.SavePingCache();
+            if (settings.UnblockOnExit) { routes.RemoveRulesOnExit(); }
+        }
+        window.Closing += (sender, args) => CleanUp();
+        SessionEnding += (sender, args) => CleanUp();
         MainWindow = window;
         window.Show();
 

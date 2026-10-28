@@ -29,6 +29,19 @@
 
       <Border Style="{StaticResource Card}">
         <DockPanel>
+          <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding UnblockOnExit}" VerticalAlignment="Center" AutomationProperties.Name="Unblock all routes when closing" />
+          <StackPanel>
+            <TextBlock Text="Unblock all routes when closing" FontWeight="SemiBold" />
+            <TextBlock Style="{StaticResource SecondaryText}">
+              Routes are only blocked while Steam Route Tool is open: closing it (including Alt+F4, signing out or shutting down) removes all its firewall rules.
+              Your selection is kept and applied again the next time you start the app. If the app is ended from Task Manager, the rules stay until it starts again.
+            </TextBlock>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
           <Button DockPanel.Dock="Right" Margin="24,0,0,0" Content="Open folder" Command="{Binding OpenSettingsFolderCommand}" VerticalAlignment="Center" />
           <StackPanel>
             <TextBlock Text="Settings and game profiles" FontWeight="SemiBold" />

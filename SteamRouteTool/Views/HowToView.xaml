@@ -22,7 +22,7 @@
           <TextBlock Style="{StaticResource BodyText}">2. Wait for the pings to fill in. Green is under 50 ms, amber under 100 ms, red above.</TextBlock>
           <TextBlock Style="{StaticResource BodyText}">3. Tick <Bold>Blocked</Bold> on every route you don't want to play on. The firewall rule is created immediately.</TextBlock>
           <TextBlock Style="{StaticResource BodyText}">4. Start (or restart) matchmaking in the game. Blocked locations aren't used anymore.</TextBlock>
-          <TextBlock Style="{StaticResource BodyText}">5. When you're done, use <Bold>Unblock all</Bold> to remove every rule, or just leave them: they stay until you change them.</TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">5. When you're done, use <Bold>Unblock all</Bold> to remove every rule, or leave them: they stay until you change them. To block only while the app is open, turn on <Bold>Unblock all routes when closing</Bold> in Settings.</TextBlock>
         </StackPanel>
       </Border>
 
