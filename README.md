@@ -23,13 +23,22 @@ Get `SteamRouteTool-<version>-win-x64.exe` from [Releases](../../releases). It's
 - **Auto select:** one click keeps the 5 fastest routes and blocks the rest (choose another number, with a preview, from the arrow; Undo is one click away).
 - **Play in one region:** filter to a region (or search) and use **Block all except shown**.
 - **Sort and filter:** search by name, code or region; filter by region or blocked state; group by region or sort by any column.
-- **Pings that work on every network:** a quick round fills the list in a second or two; anything that didn't answer is retried one at a time for networks that drop parallel pings. Last session's pings are shown straight away.
+- **Fast, reliable pings:** a quick round fills the list in a second or two; anything that didn't answer is retried one at a time for networks that drop parallel pings. Last session's pings are shown straight away.
 - **Game profiles:** each game remembers its blocked routes and applies them when you switch games.
 - **Block only while the app is open** (optional): remove all rules when the app closes and re-apply your selection on the next start.
 - **Light and dark theme** (Windows 11 style, follows your Windows setting).
 - **Built-in help, update check and links** to the changelog and releases.
 
 The app's **How to use** page explains everything step by step.
+
+## Settings
+
+![Steam Route Tool: the Settings page](docs/settings.png)
+
+- **Theme:** System, Light or Dark.
+- **Ping routes automatically** when the app starts or you switch games. Turn it off to see the last known pings until you click **Ping all**.
+- **Unblock all routes when closing:** routes are only blocked while the app is open. Your selection is kept and applied again on the next start.
+- Shortcuts to the folder with your settings and game profiles, and to Windows Defender Firewall, where the rules can be inspected.
 
 ## How it works
 
