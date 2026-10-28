@@ -3,6 +3,15 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.1] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Fixed
+
+- Buttons, checkboxes, drop-downs, navigation items and sortable column headers now show the hand cursor on hover.
+- Settings, About and the Routes header now leave a gap between text and the button or control next to it (e.g. "Firewall rules" and **Open Windows Firewall**).
+
 ## [2.0.0] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

@@ -12,7 +12,7 @@
 
     <!-- Title and game -->
     <DockPanel Grid.Row="0" Margin="0,0,0,16">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
         <TextBlock Text="Game" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,10,0" />
         <ComboBox ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}" DisplayMemberPath="Name" Width="220"
                   AutomationProperties.Name="Game" ToolTip="Each game keeps its own saved set of blocked routes" />

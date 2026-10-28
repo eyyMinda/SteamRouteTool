@@ -7,7 +7,7 @@
 
       <Border Style="{StaticResource Card}">
         <DockPanel>
-          <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="160"
+          <ComboBox DockPanel.Dock="Right" Margin="24,0,0,0" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="160"
                     VerticalAlignment="Center" AutomationProperties.Name="Theme" />
           <StackPanel>
             <TextBlock Text="Theme" FontWeight="SemiBold" />
@@ -18,7 +18,7 @@
 
       <Border Style="{StaticResource Card}">
         <DockPanel>
-          <CheckBox DockPanel.Dock="Right" IsChecked="{Binding PingOnStartup}" VerticalAlignment="Center" AutomationProperties.Name="Ping routes automatically" />
+          <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding PingOnStartup}" VerticalAlignment="Center" AutomationProperties.Name="Ping routes automatically" />
           <StackPanel>
             <TextBlock Text="Ping routes automatically" FontWeight="SemiBold" />
             <TextBlock Text="Ping every route when the app starts or you switch games. Without it, the last known pings are shown until you click Ping all."
@@ -29,7 +29,7 @@
 
       <Border Style="{StaticResource Card}">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Content="Open folder" Command="{Binding OpenSettingsFolderCommand}" VerticalAlignment="Center" />
+          <Button DockPanel.Dock="Right" Margin="24,0,0,0" Content="Open folder" Command="{Binding OpenSettingsFolderCommand}" VerticalAlignment="Center" />
           <StackPanel>
             <TextBlock Text="Settings and game profiles" FontWeight="SemiBold" />
             <TextBlock Text="Your settings, each game's blocked routes and the last known pings are stored here:" Style="{StaticResource SecondaryText}" />
@@ -40,7 +40,7 @@
 
       <Border Style="{StaticResource Card}">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Content="Open Windows Firewall" Command="{Binding OpenFirewallCommand}" VerticalAlignment="Center" />
+          <Button DockPanel.Dock="Right" Margin="24,0,0,0" Content="Open Windows Firewall" Command="{Binding OpenFirewallCommand}" VerticalAlignment="Center" />
           <StackPanel>
             <TextBlock Text="Firewall rules" FontWeight="SemiBold" />
             <TextBlock Style="{StaticResource SecondaryText}">

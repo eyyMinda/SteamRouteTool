@@ -21,7 +21,7 @@
 
       <Border Style="{StaticResource Card}">
         <DockPanel>
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
             <Button Content="Download update" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0"
                     Command="{Binding OpenLinkCommand}" CommandParameter="{Binding UpdateUrl}"
                     Visibility="{Binding IsUpdateAvailable, Converter={StaticResource VisibleWhen}}" />

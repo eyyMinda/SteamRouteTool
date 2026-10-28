@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Threading;
 using SteamRouteTool.Services;
 using SteamRouteTool.ViewModels;
@@ -7,6 +10,16 @@ namespace SteamRouteTool;
 
 public partial class App : Application
 {
+    // Clickable controls show the hand cursor. Changing the default value (instead of replacing the theme's styles)
+    // keeps the Fluent look and survives switching between light and dark mode. Must run before any of them are created.
+    static App()
+    {
+        foreach (Type clickable in new[] { typeof(ButtonBase), typeof(ComboBox), typeof(ListBoxItem), typeof(DataGridColumnHeader) })
+        {
+            FrameworkElement.CursorProperty.OverrideMetadata(clickable, new FrameworkPropertyMetadata(Cursors.Hand));
+        }
+    }
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
