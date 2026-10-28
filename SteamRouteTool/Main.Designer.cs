@@ -58,7 +58,6 @@
             this.routeDataGrid.Size = new System.Drawing.Size(269, 240);
             this.routeDataGrid.TabIndex = 0;
             this.routeDataGrid.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.RouteDataGrid_CellContentClick);
-            this.routeDataGrid.CurrentCellDirtyStateChanged += new System.EventHandler(this.RouteDataGrid_CurrentCellDirtyStateChanged);
             // 
             // Name
             // 
@@ -82,6 +81,8 @@
             // 
             this.Blocked.HeaderText = "Blocked";
             this.Blocked.Name = "Blocked";
+            this.Blocked.ReadOnly = true;
+            this.Blocked.ThreeState = true;
             this.Blocked.Resizable = System.Windows.Forms.DataGridViewTriState.False;
             this.Blocked.Width = 54;
             // 

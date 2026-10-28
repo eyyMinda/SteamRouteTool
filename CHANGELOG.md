@@ -3,10 +3,28 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
-## [1.0.5] - 2026-10-28
+## [1.0.6] - 2026-10-28
+
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
 ### Fixed
+
+- Blocking was incomplete for routes whose relays use ports above 27068 (Atlanta, Dallas, Sterling, Los Angeles, Chicago, Seattle, Stockholm and Sydney use up to 27140). Rules now use each relay's port range from the config instead of a fixed `27015-27068`.
+- Collapsing a route no longer hides that some of its relays are blocked: a partly blocked route shows an indeterminate checkbox.
+- Clicking a checkbox only changes it if Windows Firewall accepted the change.
+
+### Changed
+
+- Firewall rules are grouped under **SteamRouteTool** in Windows Defender Firewall.
+- Internals split out of the main window into models (`Pop`, `Relay`) and services (`SdrConfigClient`, `FirewallService`, `PingService`), so the UI can be redesigned without touching the logic.
+- Removed the obsolete `cloud-test` route filter (no longer present in Steam's config) and the unused `partners` flag.
+
+## [1.0.5] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Fixed
+
 - Ping results were written to the route list from background threads, which could corrupt the list or crash the app. Pings now run asynchronously and update the list safely.
 - Pings check the reply status instead of treating a 0 ms reply as a failure, time out after 2 seconds, and run concurrently instead of using one thread per route.
 - If the Steam network config can't be loaded, the app shows the error with a **Retry** option instead of crashing.
@@ -17,12 +35,15 @@ _Updated by [eyyMinda](https://github.com/eyyMinda)._
 - Ping Routes is disabled while a ping run is in progress.
 
 ### Changed
+
 - README screenshot is now stored in the repository (the old externally hosted image was unreachable).
 
 ## [1.0.4] - 2026-10-28
+
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
 ### Changed
+
 - Migrated from .NET Framework 4.8 to .NET 10 (LTS). Running the app now requires the .NET 10 Desktop Runtime; building requires the .NET 10 SDK.
 - Project converted to the SDK-style format; version and assembly info now live in `SteamRouteTool.csproj`.
 - Network config is parsed with the built-in `System.Text.Json` and downloaded with `HttpClient`.
@@ -30,28 +51,35 @@ _Updated by [eyyMinda](https://github.com/eyyMinda)._
 - App manifest declares Windows 10/11 support.
 
 ### Removed
+
 - Newtonsoft.Json dependency (12.0.2 had a known high-severity vulnerability).
 - Unused `App.config`, `packages.config`, and empty Settings/Resources files.
 
 ## [1.0.3] - 2026-10-28
+
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
 ### Added
+
 - On launch, all existing SteamRouteTool firewall rules are removed and re-created from the current network config. Rules with an outdated name format, for routes that no longer exist, or for retired relays are dropped automatically.
 
 ### Fixed
+
 - Crash on launch when firewall rules from 1.0.1 or earlier (`SteamRouteTool-<route>`) were present.
 - Unchecking the "Blocked" column header now removes the firewall rules instead of only clearing the checkboxes.
 - **Clear Rules** now unchecks every row, not just the first few.
 - Blocking or unblocking a route can no longer leave duplicate rules behind if removing an old rule fails.
 
 ### Removed
+
 - Automatic cleanup of CSGORoutingTool firewall rules on launch.
 
 ## [1.0.2] - 2026-10-28
+
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
 ### Changed
+
 - Route list is now fetched from Steam's `ISteamApps/GetSDRConfig` API (app 730) instead of the retired `network_config.json` CDN URL.
 - Blocking a route now creates three outbound firewall rules (UDP, TCP and ICMP) instead of a single UDP rule, so pings and TCP traffic to blocked relays are blocked too.
 - Firewall rules are named `SteamRouteTool-<PROTOCOL>-<route>`.
@@ -59,12 +87,15 @@ _Updated by [eyyMinda](https://github.com/eyyMinda)._
 - About dialog and assembly info credit both authors.
 
 ## [1.0.1] - 2021-04-23
-_By [Froody](https://github.com/dfrood)._
+
+_By [zaxo7 ](https://github.com/zaxo7)._
 
 ### Fixed
+
 - Adjusted parsing to work with the newer `network_config.json` format.
 
 ## [1.0.0] - 2019-06-27
+
 _By [Froody](https://github.com/dfrood)._
 
 - Initial release.

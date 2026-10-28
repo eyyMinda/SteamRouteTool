@@ -3,96 +3,32 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Net.Http;
-using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
-using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using SteamRouteTool.Models;
+using SteamRouteTool.Services;
 
 namespace SteamRouteTool
 {
     public partial class Main : Form
     {
-        public List<Route> routes = new List<Route>();
-        int rowCount = 0;
-        bool firstLoad = true;
-        string networkconfigURL = @"https://api.steampowered.com/ISteamApps/GetSDRConfig/v1?appid=730";
         static readonly HttpClient httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(15) };
-        const int PingTimeoutMs = 2000;
+        readonly SdrConfigClient configClient = new SdrConfigClient(httpClient);
+        readonly FirewallService firewall = new FirewallService();
+        readonly PingService pingService = new PingService(TimeSpan.FromSeconds(2));
 
-        // Firewall rules are named "SteamRouteTool-<PROTOCOL>-<route>", one per protocol per blocked route.
-        const string RulePrefix = "SteamRouteTool-";
-        const string GamePorts = "27015-27068";
-        static readonly Dictionary<string, int> RuleProtocols = new Dictionary<string, int>
-        {
-            { "UDP", 17 },
-            { "TCP", 6 },
-            { "ICMP", 1 }
-        };
-
-        // The Windows Firewall API (HNetCfg) is used late-bound, so no COM interop reference is needed to build.
-        const int NET_FW_RULE_DIR_OUT = 2;
-        const int NET_FW_ACTION_BLOCK = 0;
+        IReadOnlyList<Pop> pops = Array.Empty<Pop>();
+        // View state: which relays are blocked (mirrors the firewall rules) and which routes show each relay as its own row.
+        readonly HashSet<Relay> blockedRelays = new HashSet<Relay>();
+        readonly HashSet<Pop> expandedPops = new HashSet<Pop>();
+        // The route and relay shown in each grid row. Every relay has a row; collapsed routes only show their first one.
+        readonly List<(Pop Pop, int RelayIndex)> rows = new List<(Pop Pop, int RelayIndex)>();
 
         public Main()
         {
             InitializeComponent();
             Shown += async (sender, e) => await LoadRoutesAsync();
-        }
-
-        private static dynamic GetFirewallPolicy()
-        {
-            return Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
-        }
-
-        private static string GetRuleName(string protocol, string routeName)
-        {
-            return RulePrefix + protocol + "-" + routeName;
-        }
-
-        // Returns the route name of a rule in the current naming format, or null if the name doesn't match it.
-        private static string ParseRouteName(string ruleName)
-        {
-            foreach (string protocol in RuleProtocols.Keys)
-            {
-                string protocolPrefix = GetRuleName(protocol, "");
-                if (ruleName.StartsWith(protocolPrefix) && ruleName.Length > protocolPrefix.Length)
-                {
-                    return ruleName.Substring(protocolPrefix.Length);
-                }
-            }
-            return null;
-        }
-
-        // Rules can't be removed while enumerating, so they are collected first.
-        private static List<dynamic> GetToolRules(dynamic fwPolicy2)
-        {
-            List<dynamic> toolRules = new List<dynamic>();
-            foreach (dynamic rule in fwPolicy2.Rules)
-            {
-                string ruleName = rule.Name;
-                if (ruleName != null && ruleName.StartsWith(RulePrefix)) { toolRules.Add(rule); }
-            }
-            return toolRules;
-        }
-
-        private static List<string> GetRuleNames(List<dynamic> rules)
-        {
-            return rules.Select(rule => (string)rule.Name).ToList();
-        }
-
-        // Removing a name that doesn't exist is a no-op, so any exception here is a real failure (e.g. access denied).
-        private static void RemoveRules(dynamic fwPolicy2, IEnumerable<string> ruleNames)
-        {
-            foreach (string ruleName in ruleNames)
-            {
-                fwPolicy2.Rules.Remove(ruleName);
-            }
-        }
-
-        private static void RemoveRouteRules(dynamic fwPolicy2, string routeName)
-        {
-            RemoveRules(fwPolicy2, RuleProtocols.Keys.Select(protocol => GetRuleName(protocol, routeName)));
         }
 
         // Runs a firewall change, showing an error instead of crashing if Windows Firewall rejects it.
@@ -118,8 +54,7 @@ namespace SteamRouteTool
             {
                 try
                 {
-                    string raw = await httpClient.GetStringAsync(networkconfigURL);
-                    ParseRoutes(raw);
+                    pops = await configClient.GetPopsAsync();
                     break;
                 }
                 catch (Exception ex)
@@ -134,98 +69,124 @@ namespace SteamRouteTool
                 }
             }
 
-            btn_PingRoutes.Enabled = true;
             lb_GettingRoutes.Visible = false;
             btn_About.Visible = true;
-            PopulateRouteDataGrid();
+            BuildGrid();
+            _ = PingAllAsync();
+            RestoreBlockedRoutes();
         }
 
-        // Parses into new collections first, so a malformed config doesn't leave routes half loaded.
-        private void ParseRoutes(string raw)
+        private void BuildGrid()
         {
-            List<Route> parsedRoutes = new List<Route>();
-            int parsedRowCount = 0;
-            JsonObject config = JsonNode.Parse(raw).AsObject();
-
-            foreach (KeyValuePair<string, JsonNode> rc in config["pops"].AsObject())
+            routeDataGrid.Rows.Clear();
+            rows.Clear();
+            foreach (Pop pop in pops)
             {
-                JsonObject pop = rc.Value.AsObject();
-                if (pop["relays"] is JsonArray relays && !pop.ToJsonString().Contains("cloud-test"))
-                {
-                    Route route = new Route();
-                    route.name = rc.Key;
-                    if (pop["desc"] != null) { route.desc = pop["desc"].GetValue<string>(); }
-                    route.ranges = new Dictionary<string, string>();
-                    route.row_index = new List<int>();
-                    foreach (JsonNode range in relays)
-                    {
-                        route.ranges.Add(range["ipv4"].GetValue<string>(), range["port_range"].ToJsonString());
-                        route.row_index.Add(parsedRowCount);
-                        parsedRowCount++;
-                    }
-                    route.pw = pop["partners"] != null && pop["partners"].GetValue<int>() == 2;
-                    route.extended = false;
-                    route.all_check = false;
-                    parsedRoutes.Add(route);
-                }
-            }
-
-            routes = parsedRoutes;
-            rowCount = parsedRowCount;
-        }
-
-        private void PopulateRouteDataGrid()
-        {
-            if (routeDataGrid.RowCount == 0)
-            {
-                for (int i = 0; i < rowCount; i++)
+                for (int i = 0; i < pop.Relays.Count; i++)
                 {
                     routeDataGrid.Rows.Add();
-                    routeDataGrid.Rows[i].Cells[2].Value = false;
+                    rows.Add((pop, i));
                 }
             }
-
-            foreach (Route route in routes)
-            {
-                for (int i = 0; i < route.ranges.Count; i++)
-                {
-                    if (route.desc != null) { routeDataGrid.Rows[route.row_index[i]].Cells[0].Value = route.desc + " " + (i + 1); }
-                    else { routeDataGrid.Rows[route.row_index[i]].Cells[0].Value = route.name + " " + (i + 1); }
-                    if (route.extended == false)
-                    {
-                        if (route.desc != null) { routeDataGrid.Rows[route.row_index[0]].Cells[0].Value = route.desc; }
-                        else { routeDataGrid.Rows[route.row_index[0]].Cells[0].Value = route.name; }
-                    }
-                    if (i > 0 && route.extended == false) { routeDataGrid.Rows[route.row_index[i]].Visible = false; }
-                    else { routeDataGrid.Rows[route.row_index[i]].Visible = true; }
-
-                }
-            }
-
-            if (firstLoad)
-            {
-                _ = PingRoutesAsync();
-                TryFirewall(RestoreBlockedRoutes);
-            }
-            firstLoad = false;
+            RefreshGrid();
         }
 
-        // Returns the round-trip time in ms, or null if the relay didn't answer in time.
-        private static async Task<long?> PingHostAsync(string host)
+        // Updates names, visibility and checkboxes from the view state.
+        private void RefreshGrid()
         {
-            try
+            // The current cell can't be in a row that gets hidden.
+            routeDataGrid.CurrentCell = null;
+            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
-                using (Ping ping = new Ping())
-                {
-                    PingReply reply = await ping.SendPingAsync(host, PingTimeoutMs);
-                    if (reply.Status == IPStatus.Success) { return reply.RoundtripTime; }
-                }
+                (Pop pop, int relayIndex) = rows[rowIndex];
+                bool expanded = expandedPops.Contains(pop);
+                DataGridViewRow row = routeDataGrid.Rows[rowIndex];
+                row.Visible = expanded || relayIndex == 0;
+                row.Cells[Name.Index].Value = expanded ? pop.Description + " " + (relayIndex + 1) : pop.Description;
+                row.Cells[Blocked.Index].Value = expanded ? ToCheckState(blockedRelays.Contains(pop.Relays[relayIndex])) : GetBlockedState(pop);
             }
-            catch (PingException) { }
-            return null;
         }
 
-        private static Color GetPingColor(long? responseTime)
+        private static CheckState ToCheckState(bool isChecked)
+        {
+            return isChecked ? CheckState.Checked : CheckState.Unchecked;
+        }
+
+        // A collapsed route shows as checked when all its relays are blocked, and indeterminate when only some are.
+        private CheckState GetBlockedState(Pop pop)
+        {
+            int blockedCount = pop.Relays.Count(blockedRelays.Contains);
+            if (blockedCount == 0) { return CheckState.Unchecked; }
+            return blockedCount == pop.Relays.Count ? CheckState.Checked : CheckState.Indeterminate;
+        }
+
+        // Reads which relays are currently blocked, shows them, then re-applies fresh rules from the current network config.
+        // Rules in an unknown format, for removed routes, or for relays that no longer exist are dropped.
+        private void RestoreBlockedRoutes()
+        {
+            TryFirewall(() =>
+            {
+                Dictionary<string, HashSet<string>> blockedAddresses = firewall.GetBlockedAddresses();
+                foreach (Pop pop in pops)
+                {
+                    if (!blockedAddresses.TryGetValue(pop.Code, out HashSet<string> addresses)) { continue; }
+
+                    List<Relay> relays = pop.Relays.Where(relay => addresses.Contains(relay.Address)).ToList();
+                    blockedRelays.UnionWith(relays);
+                    if (relays.Count > 0 && relays.Count < pop.Relays.Count) { expandedPops.Add(pop); }
+                }
+
+                // Show what is currently blocked first, so the list stays accurate even if re-applying the rules fails.
+                RefreshGrid();
+                firewall.ReplaceAllRules(pops, blockedRelays);
+            });
+        }
+
+        // Blocks exactly the given relays of a route. The view state only changes if the firewall accepted it.
+        private void SetBlockedRelays(Pop pop, List<Relay> relays)
+        {
+            if (TryFirewall(() => firewall.SetBlockedRelays(pop, relays)))
+            {
+                blockedRelays.ExceptWith(pop.Relays);
+                blockedRelays.UnionWith(relays);
+            }
+            RefreshGrid();
+        }
+
+        private void ToggleRelayBlocked(Pop pop, Relay relay)
+        {
+            List<Relay> relays = pop.Relays.Where(blockedRelays.Contains).ToList();
+            if (!relays.Remove(relay)) { relays.Add(relay); }
+            SetBlockedRelays(pop, relays);
+        }
+
+        private void TogglePopBlocked(Pop pop)
+        {
+            bool allBlocked = pop.Relays.All(blockedRelays.Contains);
+            SetBlockedRelays(pop, allBlocked ? new List<Relay>() : pop.Relays.ToList());
+        }
+
+        // The header toggles between "everything blocked" and "nothing blocked".
+        private void ToggleAllBlocked()
+        {
+            bool blockAll = !pops.All(pop => pop.Relays.All(blockedRelays.Contains));
+            if (blockAll)
+            {
+                DialogResult confirm = MessageBox.Show("Block every route? You won't be able to connect to any Valve server until you unblock some.",
+                    "Steam Route Tool - Block All", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (confirm != DialogResult.Yes) { return; }
+            }
+
+            HashSet<Relay> newBlocked = blockAll ? pops.SelectMany(pop => pop.Relays).ToHashSet() : new HashSet<Relay>();
+            if (TryFirewall(() => firewall.ReplaceAllRules(pops, newBlocked)))
+            {
+                blockedRelays.Clear();
+                blockedRelays.UnionWith(newBlocked);
+            }
+            RefreshGrid();
+        }
+
+        private static Color GetPingColor(int? responseTime)
         {
             if (responseTime == null) { return Color.DarkRed; }
             if (responseTime <= 50) { return Color.Green; }
@@ -234,226 +195,69 @@ namespace SteamRouteTool
         }
 
         // Awaited on the UI thread, so the grid is only ever updated from the UI thread.
-        private async Task PingRelayAsync(Route route, int relayIndex)
+        private async Task PingRowAsync(int rowIndex)
         {
-            DataGridViewCell cell = routeDataGrid.Rows[route.row_index[relayIndex]].Cells[1];
+            (Pop pop, int relayIndex) = rows[rowIndex];
+            DataGridViewCell cell = routeDataGrid.Rows[rowIndex].Cells[Ping.Index];
             cell.Style.BackColor = Color.Black;
-            long? responseTime = await PingHostAsync(route.ranges.Keys.ElementAt(relayIndex));
+            int? responseTime = await pingService.PingAsync(pop.Relays[relayIndex].Address);
             if (IsDisposed) { return; }
             cell.Style.ForeColor = GetPingColor(responseTime);
             cell.Value = responseTime?.ToString() ?? "-1";
             cell.Style.BackColor = Color.White;
         }
 
-        private Task PingRouteAsync(Route route)
+        private Task PingPopAsync(Pop pop)
         {
-            return Task.WhenAll(Enumerable.Range(0, route.ranges.Count).Select(i => PingRelayAsync(route, i)));
+            return Task.WhenAll(Enumerable.Range(0, rows.Count).Where(rowIndex => rows[rowIndex].Pop == pop).Select(PingRowAsync));
         }
 
-        private async Task PingRoutesAsync()
+        private async Task PingAllAsync()
         {
             btn_PingRoutes.Enabled = false;
-            await Task.WhenAll(routes.Select(PingRouteAsync));
+            await Task.WhenAll(Enumerable.Range(0, rows.Count).Select(PingRowAsync));
+            if (IsDisposed) { return; }
             btn_PingRoutes.Enabled = true;
-        }
-
-        // Reads the blocked addresses from existing rules, removes every rule this tool owns,
-        // then re-applies fresh rules for routes that still exist in the current network config.
-        // Rules in an unknown format, for removed routes, or for relays that no longer exist are dropped.
-        private void RestoreBlockedRoutes()
-        {
-            dynamic fwPolicy2 = GetFirewallPolicy();
-            List<dynamic> toolRules = GetToolRules(fwPolicy2);
-
-            Dictionary<string, HashSet<string>> blockedAddresses = new Dictionary<string, HashSet<string>>();
-            foreach (dynamic rule in toolRules)
-            {
-                string routeName = ParseRouteName(rule.Name);
-                string remoteAddresses = rule.RemoteAddresses;
-                if (routeName == null || remoteAddresses == null) { continue; }
-
-                if (!blockedAddresses.ContainsKey(routeName)) { blockedAddresses[routeName] = new HashSet<string>(); }
-                foreach (string address in remoteAddresses.Split(',')) { blockedAddresses[routeName].Add(address.Split('/')[0]); }
-            }
-
-            // Show what is currently blocked first, so the list stays accurate even if re-applying the rules fails.
-            List<Route> blockedRoutes = new List<Route>();
-            foreach (Route route in routes)
-            {
-                if (!blockedAddresses.ContainsKey(route.name)) { continue; }
-
-                HashSet<string> addresses = blockedAddresses[route.name];
-                string[] relays = route.ranges.Keys.ToArray();
-                bool anyBlocked = false;
-                for (int i = 0; i < relays.Length; i++)
-                {
-                    if (addresses.Contains(relays[i]))
-                    {
-                        routeDataGrid.Rows[route.row_index[i]].Cells[2].Value = true;
-                        anyBlocked = true;
-                    }
-                }
-                if (!anyBlocked) { continue; }
-
-                route.extended = !relays.All(relay => addresses.Contains(relay));
-                if (route.extended)
-                {
-                    foreach (int index in route.row_index) { routeDataGrid.Rows[index].Visible = true; }
-                }
-                blockedRoutes.Add(route);
-            }
-
-            TryFirewall(() =>
-            {
-                RemoveRules(fwPolicy2, GetRuleNames(toolRules));
-                foreach (Route route in blockedRoutes)
-                {
-                    SetRule(route);
-                }
-            });
         }
 
         private void Btn_ClearRules_Click(object sender, EventArgs e)
         {
-            bool cleared = TryFirewall(() =>
-            {
-                dynamic fwPolicy2 = GetFirewallPolicy();
-                RemoveRules(fwPolicy2, GetRuleNames(GetToolRules(fwPolicy2)));
-            });
-            if (!cleared) { return; }
+            if (!TryFirewall(firewall.RemoveAllRules)) { return; }
 
-            SetAllBlocked(false);
+            blockedRelays.Clear();
+            RefreshGrid();
             MessageBox.Show("You have cleared all firewall rules created by this tool.", "Steam Route Tool - Rules Clear");
         }
 
         private async void Btn_PingRoutes_Click(object sender, EventArgs e)
         {
-            await PingRoutesAsync();
+            await PingAllAsync();
         }
 
-        void RouteDataGrid_CurrentCellDirtyStateChanged(object sender, EventArgs e)
-        {
-            if (routeDataGrid.CurrentCell != null && routeDataGrid.CurrentCell.ColumnIndex == 2 && routeDataGrid.IsCurrentCellDirty)
-            {
-                routeDataGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
-            }
-        }
-
-        private bool AreAllBlocked()
-        {
-            return routeDataGrid.Rows.Cast<DataGridViewRow>().All(row => (bool)row.Cells[2].Value);
-        }
-
-        private void SetAllBlocked(bool blocked)
-        {
-            for (int i = 0; i < routeDataGrid.Rows.Count; i++)
-            {
-                routeDataGrid.Rows[i].Cells[2].Value = blocked;
-            }
-        }
-
+        // The Blocked column is read-only: clicks are handled here so the checkboxes always reflect the firewall state.
         private void RouteDataGrid_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.ColumnIndex == 0 && e.RowIndex != -1)
+            if (e.RowIndex == -1)
             {
-                Route currentRoute = routes.Where(x => x.row_index.Contains(e.RowIndex)).First();
-                if (currentRoute.all_check && !currentRoute.extended)
-                {
-                    bool blocked = false;
-                    for (int i = 0; i < currentRoute.row_index.Count; i++)
-                    {
-                        if (i == 0)
-                        {
-                            blocked = Convert.ToBoolean(routeDataGrid.Rows[currentRoute.row_index[i]].Cells[2].Value);
-                        }
-                        else
-                        {
-                            routeDataGrid.Rows[currentRoute.row_index[i]].Cells[2].Value = blocked;
-                        }
-                    }
-                }
-
-                currentRoute.extended ^= true;
-                currentRoute.all_check ^= true;
-                PopulateRouteDataGrid();
-                _ = PingRouteAsync(currentRoute);
+                if (e.ColumnIndex == Blocked.Index) { ToggleAllBlocked(); }
+                return;
             }
 
-            if (e.ColumnIndex == 1 && e.RowIndex != -1)
+            (Pop pop, int relayIndex) = rows[e.RowIndex];
+            if (e.ColumnIndex == Name.Index)
             {
-                Route currentRoute = routes.Where(x => x.row_index.Contains(e.RowIndex)).First();
-                _ = PingRelayAsync(currentRoute, currentRoute.row_index.IndexOf(e.RowIndex));
+                if (!expandedPops.Remove(pop)) { expandedPops.Add(pop); }
+                RefreshGrid();
+                _ = PingPopAsync(pop);
             }
-
-            if (e.ColumnIndex == 2 && e.RowIndex != -1)
+            else if (e.ColumnIndex == Ping.Index)
             {
-                Route currentRoute = routes.Where(x => x.row_index.Contains(e.RowIndex)).First();
-                if (!currentRoute.extended) { currentRoute.all_check = true; }
-                else { currentRoute.all_check = false; }
-                if (!TryFirewall(() => SetRule(currentRoute)))
-                {
-                    DataGridViewCell cell = routeDataGrid.Rows[e.RowIndex].Cells[2];
-                    cell.Value = !(bool)cell.Value;
-                }
+                _ = PingRowAsync(e.RowIndex);
             }
-
-            if (e.ColumnIndex == 2 && e.RowIndex == -1)
+            else if (e.ColumnIndex == Blocked.Index)
             {
-                // The header toggles between "all blocked" and "none blocked", based on the rows' current state.
-                bool blockAll = !AreAllBlocked();
-                if (blockAll)
-                {
-                    DialogResult confirm = MessageBox.Show("Block every route? You won't be able to connect to any Valve server until you unblock some.",
-                        "Steam Route Tool - Block All", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                    if (confirm != DialogResult.Yes) { return; }
-                }
-
-                SetAllBlocked(blockAll);
-                TryFirewall(() =>
-                {
-                    foreach (Route route in routes)
-                    {
-                        SetRule(route);
-                    }
-                });
-            }
-        }
-
-        private void SetRule(Route route)
-        {
-            dynamic fwPolicy2 = GetFirewallPolicy();
-            RemoveRouteRules(fwPolicy2, route.name);
-
-            List<string> blockedRelays = new List<string>();
-            string[] relays = route.ranges.Keys.ToArray();
-            for (int i = 0; i < relays.Length; i++)
-            {
-                if ((bool)routeDataGrid.Rows[route.row_index[i]].Cells[2].Value)
-                {
-                    // A checked collapsed route row blocks every relay at that location.
-                    if (i == 0 && route.all_check)
-                    {
-                        blockedRelays = relays.ToList();
-                        break;
-                    }
-                    blockedRelays.Add(relays[i]);
-                }
-            }
-            if (blockedRelays.Count == 0) { return; }
-
-            string remoteAddresses = string.Join(",", blockedRelays);
-            foreach (KeyValuePair<string, int> protocol in RuleProtocols)
-            {
-                dynamic rule = Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
-                rule.Name = GetRuleName(protocol.Key, route.name);
-                rule.Enabled = true;
-                rule.Direction = NET_FW_RULE_DIR_OUT;
-                rule.Action = NET_FW_ACTION_BLOCK;
-                // Protocol must be set before ports; ICMP has no ports.
-                rule.Protocol = protocol.Value;
-                if (protocol.Key != "ICMP") { rule.RemotePorts = GamePorts; }
-                rule.RemoteAddresses = remoteAddresses;
-                fwPolicy2.Rules.Add(rule);
+                if (expandedPops.Contains(pop)) { ToggleRelayBlocked(pop, pop.Relays[relayIndex]); }
+                else { TogglePopBlocked(pop); }
             }
         }
 
