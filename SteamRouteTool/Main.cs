@@ -1,14 +1,12 @@
-﻿using NetFwTypeLib;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -21,6 +19,7 @@ namespace SteamRouteTool
         bool columnChecked = false;
         bool firstLoad = true;
         string networkconfigURL = @"https://api.steampowered.com/ISteamApps/GetSDRConfig/v1?appid=730";
+        static readonly HttpClient httpClient = new HttpClient();
 
         // Firewall rules are named "SteamRouteTool-<PROTOCOL>-<route>", one per protocol per blocked route.
         const string RulePrefix = "SteamRouteTool-";
@@ -32,6 +31,10 @@ namespace SteamRouteTool
             { "ICMP", 1 }
         };
 
+        // The Windows Firewall API (HNetCfg) is used late-bound, so no COM interop reference is needed to build.
+        const int NET_FW_RULE_DIR_OUT = 2;
+        const int NET_FW_ACTION_BLOCK = 0;
+
         public Main()
         {
             InitializeComponent();
@@ -39,9 +42,9 @@ namespace SteamRouteTool
             populateRoutesThread.Start();
         }
 
-        private static INetFwPolicy2 GetFirewallPolicy()
+        private static dynamic GetFirewallPolicy()
         {
-            return (INetFwPolicy2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
+            return Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
         }
 
         private static string GetRuleName(string protocol, string routeName)
@@ -64,17 +67,23 @@ namespace SteamRouteTool
         }
 
         // Rules can't be removed while enumerating, so they are collected first.
-        private static List<INetFwRule> GetToolRules(INetFwPolicy2 fwPolicy2)
+        private static List<dynamic> GetToolRules(dynamic fwPolicy2)
         {
-            List<INetFwRule> toolRules = new List<INetFwRule>();
-            foreach (INetFwRule rule in fwPolicy2.Rules)
+            List<dynamic> toolRules = new List<dynamic>();
+            foreach (dynamic rule in fwPolicy2.Rules)
             {
-                if (rule.Name != null && rule.Name.StartsWith(RulePrefix)) { toolRules.Add(rule); }
+                string ruleName = rule.Name;
+                if (ruleName != null && ruleName.StartsWith(RulePrefix)) { toolRules.Add(rule); }
             }
             return toolRules;
         }
 
-        private static void RemoveRules(INetFwPolicy2 fwPolicy2, IEnumerable<string> ruleNames)
+        private static List<string> GetRuleNames(List<dynamic> rules)
+        {
+            return rules.Select(rule => (string)rule.Name).ToList();
+        }
+
+        private static void RemoveRules(dynamic fwPolicy2, IEnumerable<string> ruleNames)
         {
             foreach (string ruleName in ruleNames)
             {
@@ -83,34 +92,33 @@ namespace SteamRouteTool
             }
         }
 
-        private static void RemoveRouteRules(INetFwPolicy2 fwPolicy2, string routeName)
+        private static void RemoveRouteRules(dynamic fwPolicy2, string routeName)
         {
             RemoveRules(fwPolicy2, RuleProtocols.Keys.Select(protocol => GetRuleName(protocol, routeName)));
         }
 
         private void PopulateRoutes()
         {
-            string raw = new WebClient().DownloadString(networkconfigURL);
-            JObject jObj = JsonConvert.DeserializeObject<JObject>(raw);
+            string raw = httpClient.GetStringAsync(networkconfigURL).GetAwaiter().GetResult();
+            JsonObject config = JsonNode.Parse(raw).AsObject();
 
-            foreach (KeyValuePair<string, JToken> rc in (JObject)jObj["pops"])
+            foreach (KeyValuePair<string, JsonNode> rc in config["pops"].AsObject())
             {
-                if (rc.Value.ToString().Contains("relays") && !rc.Value.ToString().Contains("cloud-test"))
+                JsonObject pop = rc.Value.AsObject();
+                if (pop["relays"] is JsonArray relays && !pop.ToJsonString().Contains("cloud-test"))
                 {
                     Route route = new Route();
                     route.name = rc.Key;
-                    if (rc.Value.ToString().Contains("\"desc\"")) { route.desc = rc.Value["desc"].ToString(); }
+                    if (pop["desc"] != null) { route.desc = pop["desc"].GetValue<string>(); }
                     route.ranges = new Dictionary<string, string>();
                     route.row_index = new List<int>();
-                    foreach (JObject range in rc.Value["relays"])
+                    foreach (JsonNode range in relays)
                     {
-                        Console.WriteLine(range["port_range"][0].ToString() + "-" + range["port_range"][1].ToString());
-                        route.ranges.Add(range["ipv4"].ToString(), range["port_range"].ToString());
+                        route.ranges.Add(range["ipv4"].GetValue<string>(), range["port_range"].ToJsonString());
                         route.row_index.Add(rowCount);
                         rowCount++;
                     }
-                    if (rc.Value.ToString().Contains("partners\": 2")) { route.pw = true; }
-                    else { route.pw = false; }
+                    route.pw = pop["partners"] != null && pop["partners"].GetValue<int>() == 2;
                     route.extended = false;
                     route.all_check = false;
                     routes.Add(route);
@@ -234,7 +242,7 @@ namespace SteamRouteTool
                 if (pingreply.RoundtripTime == 0) { return "-1"; }
                 else { return pingreply.RoundtripTime.ToString(); }
             }
-            catch (Exception ex) { return "-1"; }
+            catch { return "-1"; }
         }
 
         // Reads the blocked addresses from existing rules, removes every rule this tool owns,
@@ -242,20 +250,21 @@ namespace SteamRouteTool
         // Rules in an unknown format, for removed routes, or for relays that no longer exist are dropped.
         private void RestoreBlockedRoutes()
         {
-            INetFwPolicy2 fwPolicy2 = GetFirewallPolicy();
-            List<INetFwRule> toolRules = GetToolRules(fwPolicy2);
+            dynamic fwPolicy2 = GetFirewallPolicy();
+            List<dynamic> toolRules = GetToolRules(fwPolicy2);
 
             Dictionary<string, HashSet<string>> blockedAddresses = new Dictionary<string, HashSet<string>>();
-            foreach (INetFwRule rule in toolRules)
+            foreach (dynamic rule in toolRules)
             {
                 string routeName = ParseRouteName(rule.Name);
-                if (routeName == null || rule.RemoteAddresses == null) { continue; }
+                string remoteAddresses = rule.RemoteAddresses;
+                if (routeName == null || remoteAddresses == null) { continue; }
 
                 if (!blockedAddresses.ContainsKey(routeName)) { blockedAddresses[routeName] = new HashSet<string>(); }
-                foreach (string address in rule.RemoteAddresses.Split(',')) { blockedAddresses[routeName].Add(address.Split('/')[0]); }
+                foreach (string address in remoteAddresses.Split(',')) { blockedAddresses[routeName].Add(address.Split('/')[0]); }
             }
 
-            RemoveRules(fwPolicy2, toolRules.Select(rule => rule.Name).ToList());
+            RemoveRules(fwPolicy2, GetRuleNames(toolRules));
 
             foreach (Route route in routes)
             {
@@ -285,8 +294,8 @@ namespace SteamRouteTool
 
         private void Btn_ClearRules_Click(object sender, EventArgs e)
         {
-            INetFwPolicy2 fwPolicy2 = GetFirewallPolicy();
-            RemoveRules(fwPolicy2, GetToolRules(fwPolicy2).Select(rule => rule.Name).ToList());
+            dynamic fwPolicy2 = GetFirewallPolicy();
+            RemoveRules(fwPolicy2, GetRuleNames(GetToolRules(fwPolicy2)));
             for (int i = 0; i < routeDataGrid.Rows.Count; i++) { routeDataGrid.Rows[i].Cells[2].Value = false; }
             columnChecked = false;
             MessageBox.Show("You have cleared all firewall rules created by this tool.", "Steam Route Tool - Rules Clear");
@@ -412,7 +421,7 @@ namespace SteamRouteTool
 
         private void SetRule(Route route)
         {
-            INetFwPolicy2 fwPolicy2 = GetFirewallPolicy();
+            dynamic fwPolicy2 = GetFirewallPolicy();
             RemoveRouteRules(fwPolicy2, route.name);
 
             List<string> blockedRelays = new List<string>();
@@ -435,11 +444,11 @@ namespace SteamRouteTool
             string remoteAddresses = string.Join(",", blockedRelays);
             foreach (KeyValuePair<string, int> protocol in RuleProtocols)
             {
-                INetFwRule2 rule = (INetFwRule2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
+                dynamic rule = Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
                 rule.Name = GetRuleName(protocol.Key, route.name);
                 rule.Enabled = true;
-                rule.Direction = NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_OUT;
-                rule.Action = NET_FW_ACTION_.NET_FW_ACTION_BLOCK;
+                rule.Direction = NET_FW_RULE_DIR_OUT;
+                rule.Action = NET_FW_ACTION_BLOCK;
                 // Protocol must be set before ports; ICMP has no ports.
                 rule.Protocol = protocol.Value;
                 if (protocol.Key != "ICMP") { rule.RemotePorts = GamePorts; }

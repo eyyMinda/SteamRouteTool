@@ -3,6 +3,20 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [1.0.4] - 2026-10-28
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Changed
+- Migrated from .NET Framework 4.8 to .NET 10 (LTS). Running the app now requires the .NET 10 Desktop Runtime; building requires the .NET 10 SDK.
+- Project converted to the SDK-style format; version and assembly info now live in `SteamRouteTool.csproj`.
+- Network config is parsed with the built-in `System.Text.Json` and downloaded with `HttpClient`.
+- Windows Firewall is accessed late-bound, so the project no longer needs a COM interop reference and builds with `dotnet build`.
+- App manifest declares Windows 10/11 support.
+
+### Removed
+- Newtonsoft.Json dependency (12.0.2 had a known high-severity vulnerability).
+- Unused `App.config`, `packages.config`, and empty Settings/Resources files.
+
 ## [1.0.3] - 2026-10-28
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
