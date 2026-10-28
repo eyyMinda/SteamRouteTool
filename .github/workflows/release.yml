@@ -1,0 +1,70 @@
+name: Release
+
+# Push a tag matching the project version to publish a release, e.g.:
+#   git tag v1.0.7 && git push origin v1.0.7
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Check tag matches project version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content SteamRouteTool/SteamRouteTool.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          if ("v$version" -ne $env:TAG) { throw "Tag $env:TAG doesn't match the project version $version." }
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Test
+        run: dotnet test -c Release
+
+      - name: Publish self-contained exe
+        run: >-
+          dotnet publish SteamRouteTool/SteamRouteTool.csproj -c Release -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=none
+          -o publish
+
+      - name: Package and write release notes
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory release | Out-Null
+          $exe = "SteamRouteTool-$env:VERSION-win-x64.exe"
+          Copy-Item publish/SteamRouteTool.exe "release/$exe"
+          $hash = (Get-FileHash "release/$exe" -Algorithm SHA256).Hash.ToLower()
+          Set-Content release/SHA256SUMS.txt "$hash  $exe" -Encoding ascii
+
+          # Use this version's CHANGELOG.md section as the release notes.
+          $lines = Get-Content CHANGELOG.md
+          $start = [array]::IndexOf($lines, ($lines | Where-Object { $_ -like "## ``[$env:VERSION``]*" } | Select-Object -First 1))
+          if ($start -lt 0) { throw "CHANGELOG.md has no section for $env:VERSION." }
+          $end = $start + 1
+          while ($end -lt $lines.Count -and -not $lines[$end].StartsWith("## [")) { $end++ }
+          $notes = $lines[($start + 1)..($end - 1)] + @(
+            "",
+            "---",
+            "**Download:** ``$exe`` is self-contained: no .NET install needed. Windows may show a SmartScreen warning for this unsigned exe; choose **More info**, then **Run anyway**. Verify the download against ``SHA256SUMS.txt``."
+          )
+          Set-Content notes.md $notes -Encoding utf8
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:TAG release/* --title "SteamRouteTool $env:VERSION" --notes-file notes.md
