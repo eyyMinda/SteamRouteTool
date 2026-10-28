@@ -3,6 +3,20 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [1.1.1] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Fixed
+
+- Blocked routes slowed down every ping run: their relays can't answer (ICMP is blocked too), but each one was still retried with a timeout. Blocked relays are no longer pinged and show "blocked"; a route is pinged again as soon as it's unblocked.
+- The window froze during large firewall changes such as blocking every route, which can take ~135 rule changes. Checkbox clicks, the "Blocked" header and Clear Rules now update the firewall in the background, and further firewall clicks wait until the change is done.
+- Expanding a route or clicking a ping while Ping Routes was running could briefly show wrong ping values. Relays that are already being pinged are no longer queued a second time.
+
+### Changed
+
+- The Ping column is slightly wider.
+
 ## [1.1.0] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

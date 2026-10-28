@@ -81,7 +81,7 @@ partial class Main
         this.colPing.ReadOnly = true;
         this.colPing.Resizable = System.Windows.Forms.DataGridViewTriState.False;
         this.colPing.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-        this.colPing.Width = 40;
+        this.colPing.Width = 52;
         // 
         // Blocked
         // 
