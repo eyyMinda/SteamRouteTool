@@ -4,8 +4,23 @@ using SteamRouteTool.Services;
 namespace SteamRouteTool.ViewModels;
 
 /// <summary>A page in the navigation bar. <see cref="Glyph"/> is a Segoe Fluent Icons character.</summary>
-public sealed record NavigationItem(string Title, string Glyph, object Content)
+public sealed partial class NavigationItem : ObservableObject
 {
+    public NavigationItem(string title, string glyph, object content)
+    {
+        Title = title;
+        Glyph = glyph;
+        Content = content;
+    }
+
+    public string Title { get; }
+    public string Glyph { get; }
+    public object Content { get; }
+
+    /// <summary>Pages are created once and only shown or hidden, so they keep their scroll position, sort and expanded rows.</summary>
+    [ObservableProperty]
+    bool isSelected;
+
     // Screen readers (UI Automation) name list items by ToString().
     public override string ToString() => Title;
 }
@@ -30,6 +45,7 @@ public sealed partial class MainViewModel : ObservableObject
             new NavigationItem("About", "", about),
         ];
         selectedPage = Pages[0];
+        selectedPage.IsSelected = true;
     }
 
     public RoutesViewModel Routes { get; }
@@ -39,4 +55,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     NavigationItem selectedPage;
+
+    partial void OnSelectedPageChanged(NavigationItem value)
+    {
+        foreach (NavigationItem page in Pages) { page.IsSelected = page == value; }
+    }
 }

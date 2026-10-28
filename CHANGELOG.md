@@ -3,6 +3,16 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.2] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Fixed
+
+- Selected routes were filled with the Windows accent color, which made the route code, "blocked" and red ping text very hard to read (especially with strong accents like pink or purple). Selected rows now use a neutral highlight in both light and dark mode; the accent color is still used for buttons, checkboxes and navigation.
+- Ping colors use their own palette per theme, with a clearer red for slow pings and "no reply" in dark mode, and "blocked" is shown in a readable muted grey.
+- Switching pages no longer resets the route list: sorting, scroll position and expanded routes are kept.
+
 ## [2.0.1] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

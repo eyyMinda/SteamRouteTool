@@ -57,29 +57,29 @@
         <Setter Property="Margin" Value="0,0,0,12" />
       </Style>
 
-      <!-- Ping values: green / amber / red by latency, muted for stale, pending or blocked. -->
+      <!-- Ping values: green / amber / red by latency (brushes set per theme in AppTheme), muted for stale, pending or blocked. -->
       <Style x:Key="PingText" TargetType="TextBlock">
         <Setter Property="Text" Value="{Binding Ping.Text}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         <Style.Triggers>
           <DataTrigger Binding="{Binding Ping.Level}" Value="Good">
-            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PingGoodBrush}" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Ping.Level}" Value="Fair">
-            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PingFairBrush}" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Ping.Level}" Value="Poor">
-            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PingPoorBrush}" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Ping.Level}" Value="Failed">
-            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PingPoorBrush}" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Ping.Level}" Value="Stale">
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
           </DataTrigger>
           <DataTrigger Binding="{Binding Ping.Level}" Value="Blocked">
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
           </DataTrigger>
         </Style.Triggers>
       </Style>

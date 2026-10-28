@@ -31,7 +31,8 @@ public partial class App : Application
 
         SettingsStore settingsStore = new SettingsStore(Path.Combine(SettingsStore.DefaultDirectory, "settings.json"));
         AppSettings settings = settingsStore.Load();
-        SettingsViewModel.ApplyTheme(settings.Theme);
+        AppTheme.Apply(settings.Theme);
+        AppTheme.FollowSystemChanges();
 
         RoutesViewModel routes = new RoutesViewModel(new SdrConfigClient(httpClient), new FirewallService(), new PingService(),
             new PingCache(PingCache.DefaultPath), settingsStore, settings);

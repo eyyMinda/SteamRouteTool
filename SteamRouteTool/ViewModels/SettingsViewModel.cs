@@ -1,4 +1,3 @@
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SteamRouteTool.Services;
@@ -29,7 +28,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnThemeChanged(string value)
     {
-        ApplyTheme(value);
+        AppTheme.Apply(value);
         settings.Theme = value;
         store.Save(settings);
     }
@@ -38,16 +37,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         settings.PingOnStartup = value;
         store.Save(settings);
-    }
-
-    public static void ApplyTheme(string theme)
-    {
-        Application.Current.ThemeMode = theme switch
-        {
-            "Light" => ThemeMode.Light,
-            "Dark" => ThemeMode.Dark,
-            _ => ThemeMode.System,
-        };
     }
 
     [RelayCommand]

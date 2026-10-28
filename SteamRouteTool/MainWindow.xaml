@@ -34,7 +34,18 @@
     <!-- Page -->
     <Border Grid.Column="1" Background="{DynamicResource LayerFillColorDefaultBrush}"
             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1,1,0,0" CornerRadius="8,0,0,0">
-      <ContentControl Content="{Binding SelectedPage.Content}" Margin="28,20,28,16" Focusable="False" />
+      <!-- Every page is created once and stays alive (keeping its scroll position, sort and expanded rows); only the
+           selected one is visible. Plain ContentControls rather than an ItemsControl, so screen readers can reach the pages. -->
+      <Grid Margin="28,20,28,16">
+        <ContentControl Content="{Binding Pages[0].Content}" Focusable="False"
+                        Visibility="{Binding Pages[0].IsSelected, Converter={StaticResource VisibleWhen}}" />
+        <ContentControl Content="{Binding Pages[1].Content}" Focusable="False"
+                        Visibility="{Binding Pages[1].IsSelected, Converter={StaticResource VisibleWhen}}" />
+        <ContentControl Content="{Binding Pages[2].Content}" Focusable="False"
+                        Visibility="{Binding Pages[2].IsSelected, Converter={StaticResource VisibleWhen}}" />
+        <ContentControl Content="{Binding Pages[3].Content}" Focusable="False"
+                        Visibility="{Binding Pages[3].IsSelected, Converter={StaticResource VisibleWhen}}" />
+      </Grid>
     </Border>
   </Grid>
 </Window>
