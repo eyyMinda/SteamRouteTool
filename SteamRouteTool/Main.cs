@@ -47,21 +47,7 @@ public partial class Main : Form
             "Steam Route Tool - Firewall Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
-    // Runs a firewall change, showing an error instead of crashing if Windows Firewall rejects it.
-    private static bool TryFirewall(Action action)
-    {
-        try
-        {
-            action();
-            return true;
-        }
-        catch (Exception ex) when (IsFirewallError(ex))
-        {
-            ShowFirewallError(ex);
-            return false;
-        }
-    }
-
+    // Runs a firewall operation, showing an error instead of crashing if Windows Firewall rejects it.
     private static async Task<bool> TryFirewallAsync(Func<Task> action)
     {
         try
@@ -73,6 +59,25 @@ public partial class Main : Form
         {
             ShowFirewallError(ex);
             return false;
+        }
+    }
+
+    // Runs a firewall change in the background so the window doesn't freeze (blocking everything can take ~135 rule writes).
+    // Further firewall clicks are ignored until it finishes.
+    private async Task<bool> RunFirewallChangeAsync(Action change)
+    {
+        firewallReady = false;
+        btn_ClearRules.Enabled = false;
+        UseWaitCursor = true;
+        try
+        {
+            return await TryFirewallAsync(() => Task.Run(change));
+        }
+        finally
+        {
+            firewallReady = true;
+            btn_ClearRules.Enabled = true;
+            UseWaitCursor = false;
         }
     }
 
@@ -150,8 +155,16 @@ public partial class Main : Form
     private void RefreshPingCell(int rowIndex)
     {
         (Pop pop, int relayIndex) = rows[rowIndex];
-        IReadOnlyList<Relay> relays = expandedPops.Contains(pop) ? [pop.Relays[relayIndex]] : pop.Relays;
+        IReadOnlyList<Relay> shown = expandedPops.Contains(pop) ? [pop.Relays[relayIndex]] : pop.Relays;
         DataGridViewCell cell = routeDataGrid.Rows[rowIndex].Cells[colPing.Index];
+
+        // Blocked relays can't answer pings, so only unblocked ones count.
+        List<Relay> relays = shown.Where(relay => !blockedRelays.Contains(relay)).ToList();
+        if (relays.Count == 0)
+        {
+            (cell.Value, cell.Style.ForeColor) = ("blocked", Color.Gray);
+            return;
+        }
 
         // Fresh results win; while pinging (or before the first ping) the last session's value is shown greyed.
         int? best = relays.Where(pingResults.ContainsKey).Select(relay => pingResults[relay]).Min();
@@ -204,32 +217,35 @@ public partial class Main : Form
         RefreshGrid();
     }
 
-    // Blocks exactly the given relays of a route. The view state only changes if the firewall accepted it.
-    private void SetBlockedRelays(Pop pop, List<Relay> relays)
+    // Blocks exactly the given relays of a route. The view state only changes if the firewall accepted it;
+    // relays that were unblocked are pinged again.
+    private async Task SetBlockedRelaysAsync(Pop pop, List<Relay> relays)
     {
-        if (TryFirewall(() => firewall.SetBlockedRelays(pop, relays)))
+        bool unblocksAny = pop.Relays.Any(relay => blockedRelays.Contains(relay) && !relays.Contains(relay));
+        if (await RunFirewallChangeAsync(() => firewall.SetBlockedRelays(pop, relays)))
         {
             blockedRelays.ExceptWith(pop.Relays);
             blockedRelays.UnionWith(relays);
+            if (unblocksAny) { _ = PingPopsAsync([pop]); }
         }
         RefreshGrid();
     }
 
-    private void ToggleRelayBlocked(Pop pop, Relay relay)
+    private Task ToggleRelayBlockedAsync(Pop pop, Relay relay)
     {
         List<Relay> relays = pop.Relays.Where(blockedRelays.Contains).ToList();
         if (!relays.Remove(relay)) { relays.Add(relay); }
-        SetBlockedRelays(pop, relays);
+        return SetBlockedRelaysAsync(pop, relays);
     }
 
-    private void TogglePopBlocked(Pop pop)
+    private Task TogglePopBlockedAsync(Pop pop)
     {
         bool allBlocked = pop.Relays.All(blockedRelays.Contains);
-        SetBlockedRelays(pop, allBlocked ? new List<Relay>() : pop.Relays.ToList());
+        return SetBlockedRelaysAsync(pop, allBlocked ? new List<Relay>() : pop.Relays.ToList());
     }
 
     // The header toggles between "everything blocked" and "nothing blocked".
-    private void ToggleAllBlocked()
+    private async Task ToggleAllBlockedAsync()
     {
         bool blockAll = !pops.All(pop => pop.Relays.All(blockedRelays.Contains));
         if (blockAll)
@@ -240,10 +256,12 @@ public partial class Main : Form
         }
 
         HashSet<Relay> newBlocked = blockAll ? pops.SelectMany(pop => pop.Relays).ToHashSet() : new HashSet<Relay>();
-        if (TryFirewall(() => firewall.SyncRules(pops, newBlocked)))
+        List<Pop> unblockedPops = pops.Where(pop => pop.Relays.Any(relay => blockedRelays.Contains(relay) && !newBlocked.Contains(relay))).ToList();
+        if (await RunFirewallChangeAsync(() => firewall.SyncRules(pops, newBlocked)))
         {
             blockedRelays.Clear();
             blockedRelays.UnionWith(newBlocked);
+            _ = PingPopsAsync(unblockedPops);
         }
         RefreshGrid();
     }
@@ -261,43 +279,49 @@ public partial class Main : Form
     // 1. Quick: the first relay of each collapsed route (every relay of an expanded one), several at a time. On networks
     //    without ICMP limits this is all it takes.
     // 2. Careful: whatever didn't answer is retried one at a time; collapsed routes try further relays until one answers.
+    // Blocked relays are skipped (their ICMP is blocked too, so they can't answer), and so are relays another run is
+    // already pinging: each run only clears the pending state of the relays it pinged itself.
     private async Task PingPopsAsync(IEnumerable<Pop> popsToPing)
     {
-        List<Pop> ordered = OrderOnScreenFirst(popsToPing);
-        foreach (Pop pop in ordered)
+        List<(Pop Pop, List<Relay> Relays)> runs = new List<(Pop Pop, List<Relay> Relays)>();
+        foreach (Pop pop in OrderOnScreenFirst(popsToPing))
         {
-            foreach (Relay relay in pop.Relays) { pingResults.Remove(relay); }
-            pendingPings.UnionWith(pop.Relays);
+            List<Relay> relays = pop.Relays.Where(relay => !blockedRelays.Contains(relay) && !pendingPings.Contains(relay)).ToList();
+            if (relays.Count == 0) { continue; }
+
+            foreach (Relay relay in relays) { pingResults.Remove(relay); }
+            pendingPings.UnionWith(relays);
+            runs.Add((pop, relays));
             RefreshPingCells(pop);
         }
 
-        await Task.WhenAll(ordered.SelectMany(pop => GetQuickRoundRelays(pop).Select(relay => PingRelayAsync(pop, relay, quick: true))));
-        foreach (Pop pop in ordered)
+        await Task.WhenAll(runs.SelectMany(run => GetQuickRoundRelays(run.Pop, run.Relays).Select(relay => PingRelayAsync(run.Pop, relay, quick: true))));
+        foreach ((Pop pop, List<Relay> relays) in runs)
         {
-            await RetryCarefullyAsync(pop);
+            await RetryCarefullyAsync(pop, relays);
             if (IsDisposed) { return; }
-            pendingPings.ExceptWith(pop.Relays);
+            pendingPings.ExceptWith(relays);
             RefreshPingCells(pop);
         }
     }
 
-    private IEnumerable<Relay> GetQuickRoundRelays(Pop pop)
+    private IEnumerable<Relay> GetQuickRoundRelays(Pop pop, List<Relay> relays)
     {
-        return expandedPops.Contains(pop) ? pop.Relays : [pop.Relays[0]];
+        return expandedPops.Contains(pop) ? relays : [relays[0]];
     }
 
-    private async Task RetryCarefullyAsync(Pop pop)
+    private async Task RetryCarefullyAsync(Pop pop, List<Relay> relays)
     {
         if (expandedPops.Contains(pop))
         {
-            foreach (Relay relay in pop.Relays.Where(relay => pingResults.GetValueOrDefault(relay) == null).ToList())
+            foreach (Relay relay in relays.Where(relay => pingResults.GetValueOrDefault(relay) == null).ToList())
             {
                 await PingRelayAsync(pop, relay, quick: false);
             }
         }
         else if (!pop.Relays.Any(relay => pingResults.GetValueOrDefault(relay) != null))
         {
-            foreach (Relay relay in pop.Relays)
+            foreach (Relay relay in relays)
             {
                 await PingRelayAsync(pop, relay, quick: false);
                 if (pingResults.GetValueOrDefault(relay) != null) { break; }
@@ -313,9 +337,10 @@ public partial class Main : Form
         RefreshPingCells(pop);
     }
 
-    // Re-pings one relay of an expanded route, carefully.
+    // Re-pings one relay of an expanded route, carefully, unless it's blocked or already being pinged.
     private async Task PingSingleRelayAsync(Pop pop, Relay relay)
     {
+        if (blockedRelays.Contains(relay) || pendingPings.Contains(relay)) { return; }
         pingResults.Remove(relay);
         pendingPings.Add(relay);
         RefreshPingCells(pop);
@@ -357,12 +382,15 @@ public partial class Main : Form
         pingCache.Save(cachedPings);
     }
 
-    private void Btn_ClearRules_Click(object? sender, EventArgs e)
+    private async void Btn_ClearRules_Click(object? sender, EventArgs e)
     {
-        if (!TryFirewall(firewall.RemoveAllRules)) { return; }
+        if (!firewallReady) { return; }
+        List<Pop> blockedPops = pops.Where(pop => pop.Relays.Any(blockedRelays.Contains)).ToList();
+        if (!await RunFirewallChangeAsync(firewall.RemoveAllRules)) { return; }
 
         blockedRelays.Clear();
         RefreshGrid();
+        _ = PingPopsAsync(blockedPops);
         MessageBox.Show("You have cleared all firewall rules created by this tool.", "Steam Route Tool - Rules Clear");
     }
 
@@ -372,11 +400,11 @@ public partial class Main : Form
     }
 
     // The Blocked column is read-only: clicks are handled here so the checkboxes always reflect the firewall state.
-    private void RouteDataGrid_CellContentClick(object? sender, DataGridViewCellEventArgs e)
+    private async void RouteDataGrid_CellContentClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex == -1)
         {
-            if (e.ColumnIndex == colBlocked.Index && firewallReady) { ToggleAllBlocked(); }
+            if (e.ColumnIndex == colBlocked.Index && firewallReady) { await ToggleAllBlockedAsync(); }
             return;
         }
 
@@ -396,8 +424,8 @@ public partial class Main : Form
         }
         else if (e.ColumnIndex == colBlocked.Index && firewallReady)
         {
-            if (expandedPops.Contains(pop)) { ToggleRelayBlocked(pop, pop.Relays[relayIndex]); }
-            else { TogglePopBlocked(pop); }
+            if (expandedPops.Contains(pop)) { await ToggleRelayBlockedAsync(pop, pop.Relays[relayIndex]); }
+            else { await TogglePopBlockedAsync(pop); }
         }
     }
 
