@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using SteamRouteTool.Converters;
 
@@ -12,6 +13,13 @@ public partial class RoutesView : UserControl
     public RoutesView()
     {
         InitializeComponent();
+        AutoSelectPopup.CustomPopupPlacementCallback = AlignRightBelow;
+    }
+
+    // Opens the Auto select options under the split button, right edges aligned (it sits at the right of the page).
+    static CustomPopupPlacement[] AlignRightBelow(Size popupSize, Size targetSize, Point offset)
+    {
+        return [new CustomPopupPlacement(new Point(targetSize.Width - popupSize.Width, targetSize.Height + 4), PopupPrimaryAxis.Horizontal)];
     }
 
     // The Route column takes whatever width the other columns and the scrollbar leave.

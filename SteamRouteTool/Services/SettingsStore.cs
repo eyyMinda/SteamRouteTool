@@ -10,10 +10,8 @@ public sealed class AppSettings
     public bool GroupByRegion { get; set; } = true;
     /// <summary>Remove all firewall rules when the app closes, and re-apply the game's profile when it starts.</summary>
     public bool UnblockOnExit { get; set; }
-    /// <summary>Auto select keeps routes up to this ping...</summary>
-    public int AutoMaxPingMs { get; set; } = 80;
-    /// <summary>...but always at least this many of the fastest routes.</summary>
-    public int AutoMinRoutes { get; set; } = 3;
+    /// <summary>How many of the fastest routes Auto select keeps.</summary>
+    public int AutoRouteCount { get; set; } = AutoSelector.DefaultRouteCount;
     public int LastAppId { get; set; } = Models.Game.CounterStrike2;
     /// <summary>Saved block profile per game (by app ID), applied to the firewall when switching to that game.</summary>
     public Dictionary<int, GameProfile> Profiles { get; set; } = new Dictionary<int, GameProfile>();

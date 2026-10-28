@@ -49,8 +49,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         cachedPings = pingCache.Load();
         selectedGame = Game.FromAppId(settings.LastAppId);
         groupByRegion = settings.GroupByRegion;
-        autoMaxPingMs = settings.AutoMaxPingMs;
-        autoMinRoutes = settings.AutoMinRoutes;
+        autoRouteCount = Math.Clamp(settings.AutoRouteCount, 1, 20);
 
         ListCollectionView view = (ListCollectionView)CollectionViewSource.GetDefaultView(Routes);
         view.Filter = item => FilterRoute((RouteViewModel)item);
@@ -174,6 +173,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     {
         int load = ++loadVersion;
         IsLoading = true;
+        CanUndoAutoSelect = false;
         ErrorMessage = null;
         StatusMessage = null;
 
@@ -335,6 +335,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             return;
         }
 
+        CanUndoAutoSelect = false;
         bool unblocksAny = route.Pop.Relays.Any(relay => blockedRelays.Contains(relay) && !relays.Contains(relay));
         if (await RunFirewallChangeAsync(() => firewall.SetBlockedRelays(route.Pop, relays)))
         {
@@ -376,10 +377,12 @@ public sealed partial class RoutesViewModel : ObservableObject
         await ApplyBlockedAsync(blocked, $"Only the {shown.Count} shown routes are allowed; {hidden} routes are blocked.");
     }
 
-    async Task ApplyBlockedAsync(HashSet<Relay> newBlocked, string message)
+    async Task<bool> ApplyBlockedAsync(HashSet<Relay> newBlocked, string message)
     {
+        CanUndoAutoSelect = false;
         List<RouteViewModel> unblocked = Routes.Where(route => route.Pop.Relays.Any(relay => blockedRelays.Contains(relay) && !newBlocked.Contains(relay))).ToList();
-        if (await RunFirewallChangeAsync(() => firewall.SyncRules(pops, newBlocked)))
+        bool applied = await RunFirewallChangeAsync(() => firewall.SyncRules(pops, newBlocked));
+        if (applied)
         {
             blockedRelays = newBlocked;
             SaveProfile();
@@ -387,6 +390,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             _ = PingRoutesAsync(unblocked);
         }
         RefreshAllRoutes();
+        return applied;
     }
 
     // Runs a firewall change on a background thread so the window doesn't freeze (blocking everything is ~135 rule writes).
@@ -444,39 +448,35 @@ public sealed partial class RoutesViewModel : ObservableObject
     {
         ErrorMessage = null;
         StatusMessage = null;
+        CanUndoAutoSelect = false;
     }
 
     // ----- Auto select -----
 
-    /// <summary>Whether the Auto select panel is open.</summary>
+    /// <summary>Whether the Auto select options (the arrow next to the button) are open.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AutoSelectPreview))]
     bool isAutoSelectOpen;
 
+    /// <summary>How many of the fastest routes Auto select keeps.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoSelectPreview))]
-    int autoMaxPingMs;
+    [NotifyPropertyChangedFor(nameof(AutoSelectPreview), nameof(AutoSelectLabel))]
+    int autoRouteCount;
 
+    /// <summary>True right after Auto select was applied, until anything else changes the blocked routes.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoSelectPreview))]
-    int autoMinRoutes;
+    [NotifyCanExecuteChangedFor(nameof(UndoAutoSelectCommand))]
+    bool canUndoAutoSelect;
 
-    partial void OnAutoMaxPingMsChanged(int value)
+    // What was blocked before the last Auto select, for Undo.
+    HashSet<Relay>? blockedBeforeAutoSelect;
+
+    public string AutoSelectLabel => $"{AutoRouteCount} fastest";
+
+    partial void OnAutoRouteCountChanged(int value)
     {
-        settings.AutoMaxPingMs = value;
+        settings.AutoRouteCount = value;
         settingsStore.Save(settings);
-    }
-
-    partial void OnAutoMinRoutesChanged(int value)
-    {
-        settings.AutoMinRoutes = value;
-        settingsStore.Save(settings);
-    }
-
-    [RelayCommand]
-    void ToggleAutoSelect()
-    {
-        IsAutoSelectOpen = !IsAutoSelectOpen;
-        OnPropertyChanged(nameof(AutoSelectPreview));
     }
 
     /// <summary>
@@ -492,10 +492,16 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     IReadOnlyList<Pop> GetAutoSelectedRoutes()
     {
-        return AutoSelector.SelectRoutesToKeep(pops.Select(pop => (pop, GetKnownPing(pop))), AutoMaxPingMs, AutoMinRoutes);
+        return AutoSelector.SelectFastest(pops.Select(pop => (pop, GetKnownPing(pop))), AutoRouteCount);
     }
 
-    /// <summary>What Auto select would do with the current settings, e.g. "Keeps 9 routes and blocks 36: Warsaw (13 ms), ... and 3 more."</summary>
+    string DescribeRoutes(IReadOnlyList<Pop> routes, int shown)
+    {
+        string names = string.Join(", ", routes.Take(shown).Select(pop => $"{pop.Description} ({GetKnownPing(pop)} ms)"));
+        return routes.Count > shown ? $"{names} and {routes.Count - shown} more" : names;
+    }
+
+    /// <summary>What Auto select would do, e.g. "Keeps Warsaw (Poland) (13 ms), ... Blocks the other 40 routes."</summary>
     public string AutoSelectPreview
     {
         get
@@ -504,32 +510,45 @@ public sealed partial class RoutesViewModel : ObservableObject
             IReadOnlyList<Pop> kept = GetAutoSelectedRoutes();
             if (kept.Count == 0) { return "No pings are known yet. Click Ping all first."; }
 
+            string preview = $"Keeps {DescribeRoutes(kept, 10)}. Blocks the other {pops.Count - kept.Count} routes.";
             int unknown = pops.Count(pop => GetKnownPing(pop) == null);
-            string names = string.Join(", ", kept.Take(6).Select(pop => $"{pop.Description} ({GetKnownPing(pop)} ms)")) + (kept.Count > 6 ? $" and {kept.Count - 6} more" : "");
-            string preview = $"Keeps {kept.Count} {(kept.Count == 1 ? "route" : "routes")} and blocks {pops.Count - kept.Count}: {names}.";
-            if (unknown > 0) { preview += $" {unknown} {(unknown == 1 ? "route has" : "routes have")} no known ping and will be blocked."; }
+            if (unknown > 0) { preview += $" {unknown} {(unknown == 1 ? "route has" : "routes have")} no known ping."; }
             if (IsPinging) { preview += " Pings are still being measured."; }
             return preview;
         }
     }
 
-    /// <summary>Unblocks the selected routes and blocks every other route, all relays included.</summary>
+    /// <summary>Keeps the fastest routes and blocks every other route, all relays included.</summary>
     [RelayCommand(CanExecute = nameof(CanApplyAutoSelect))]
     async Task ApplyAutoSelectAsync()
     {
+        IsAutoSelectOpen = false;
         IReadOnlyList<Pop> kept = GetAutoSelectedRoutes();
         if (kept.Count == 0)
         {
             StatusMessage = "Auto select needs at least one known ping. Click Ping all first.";
             return;
         }
+
         HashSet<Pop> keptSet = kept.ToHashSet();
         HashSet<Relay> blocked = pops.Where(pop => !keptSet.Contains(pop)).SelectMany(pop => pop.Relays).ToHashSet();
-        IsAutoSelectOpen = false;
-        await ApplyBlockedAsync(blocked, $"Auto select kept the {kept.Count} fastest {(kept.Count == 1 ? "route" : "routes")} and blocked {pops.Count - kept.Count}.");
+        HashSet<Relay> before = blockedRelays.ToHashSet();
+        string message = $"Auto select kept the {kept.Count} fastest {(kept.Count == 1 ? "route" : "routes")}: {DescribeRoutes(kept, 5)}. The other {pops.Count - kept.Count} are blocked.";
+        if (await ApplyBlockedAsync(blocked, message))
+        {
+            blockedBeforeAutoSelect = before;
+            CanUndoAutoSelect = true;
+        }
     }
 
     bool CanApplyAutoSelect() => CanChangeRules && !IsPinging;
+
+    [RelayCommand(CanExecute = nameof(CanUndoAutoSelect))]
+    async Task UndoAutoSelectAsync()
+    {
+        if (blockedBeforeAutoSelect == null) { return; }
+        await ApplyBlockedAsync(blockedBeforeAutoSelect, "Restored the routes that were blocked before Auto select.");
+    }
 
     // ----- Pinging -----
 

@@ -100,6 +100,63 @@
         </Setter>
       </Style>
 
+      <!-- Auto select split button: a light blue that stands out from the other actions and reads well in both themes. -->
+      <SolidColorBrush x:Key="AutoSelectBackground" Color="#FF4DA3FF" />
+      <SolidColorBrush x:Key="AutoSelectBackgroundHover" Color="#FF3D95F2" />
+      <SolidColorBrush x:Key="AutoSelectBackgroundPressed" Color="#FF2F86E3" />
+      <SolidColorBrush x:Key="AutoSelectForeground" Color="#FF08213F" />
+      <!-- Tag is the corner radius: rounded on the left only when the button is part of the split button. -->
+      <Style x:Key="AutoSelectButton" TargetType="Button">
+        <Setter Property="Tag" Value="4,0,0,4" />
+        <Setter Property="Foreground" Value="{StaticResource AutoSelectForeground}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border x:Name="Background" Background="{StaticResource AutoSelectBackground}" Padding="{TemplateBinding Padding}"
+                      CornerRadius="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="Background" Property="Background" Value="{StaticResource AutoSelectBackgroundHover}" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                  <Setter TargetName="Background" Property="Background" Value="{StaticResource AutoSelectBackgroundPressed}" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                  <Setter Property="Opacity" Value="0.5" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <Style x:Key="AutoSelectArrow" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{StaticResource AutoSelectForeground}" />
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="ToggleButton">
+              <Border x:Name="Background" Background="{StaticResource AutoSelectBackground}" CornerRadius="0,4,4,0"
+                      BorderBrush="{StaticResource AutoSelectBackgroundPressed}" BorderThickness="1,0,0,0">
+                <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="11"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="Background" Property="Background" Value="{StaticResource AutoSelectBackgroundHover}" />
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                  <Setter TargetName="Background" Property="Background" Value="{StaticResource AutoSelectBackgroundPressed}" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
       <!-- A chevron that expands a route to show its relays. -->
       <Style x:Key="ExpandToggle" TargetType="ToggleButton">
         <Setter Property="Cursor" Value="Hand" />

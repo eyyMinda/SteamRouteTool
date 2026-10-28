@@ -3,13 +3,25 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.5] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Auto select:** one click keeps the 5 fastest routes (by their best known ping) and blocks every other route. It's the light blue button at the right of the Routes page.
+  - The arrow next to it lets you choose how many routes to keep (1–20) and shows a preview of what will be kept and blocked. The number is remembered.
+  - **Undo** in the confirmation restores the routes that were blocked before.
+  - Uses the last measured ping for routes that are already blocked (they can't be pinged); routes without any known ping are blocked.
+- The default window is a little wider, so all actions fit on one row.
+
 ## [2.0.4] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
 ### Added
 
-- **Auto select:** picks the best routes for you by ping and blocks the rest. Set the highest ping to keep (20–300 ms, default 80) and how many of the fastest routes to always keep (default 3), check the live preview, and apply. It uses each route's best known ping (the last measured one for blocked routes); routes without any known ping are blocked. The limits are remembered.
+- First version of Auto select, keeping routes up to a ping limit. Replaced in 2.0.5 by keeping the N fastest routes.
 
 ## [2.0.3] - 2026-10-28
 
