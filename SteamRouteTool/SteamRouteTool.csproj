@@ -8,10 +8,16 @@
     <AssemblyName>SteamRouteTool</AssemblyName>
     <ApplicationIcon>wifi.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="SteamRouteTool.Tests" />
+  </ItemGroup>
+
   <PropertyGroup>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <Product>Steam Route Tool</Product>
     <AssemblyTitle>A tool for blocking routes in Steam games that use Valve's SDR network config</AssemblyTitle>
     <Company>Froody, eyyMinda</Company>

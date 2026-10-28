@@ -3,6 +3,23 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [1.0.7] - 2026-10-28
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- Unit tests (xUnit v3 on Microsoft.Testing.Platform) for config parsing, firewall rule-name parsing, and which rules are kept or dropped on launch.
+- GitHub Actions: build and test on every pull request and push to `main`; pushing a `v*` tag publishes the self-contained exe, `SHA256SUMS.txt` and the changelog section as a GitHub Release.
+- `.editorconfig` with the project's code style.
+
+### Changed
+
+- Nullable reference types and implicit usings enabled; all code uses file-scoped namespaces.
+- Grid columns renamed to `colName` / `colPing` / `colBlocked` (fixes the last compiler warning).
+- Solution migrated from `.sln` to `.slnx`.
+- Line endings are now fixed to CRLF on checkout via `.gitattributes`, independent of local Git settings.
+
 ## [1.0.6] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

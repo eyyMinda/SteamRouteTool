@@ -2,7 +2,7 @@
 
 A tool for blocking routes in Steam games that use Valve's SDR (Steam Datagram Relay) network config.
 
-Current version: **1.0.6**. See [CHANGELOG.md](CHANGELOG.md) for release history.
+Current version: **1.0.7**. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Supports:
 
@@ -33,9 +33,16 @@ Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (p
 
 ```sh
 dotnet build -c Release
+dotnet test
 ```
 
-The output is in `SteamRouteTool/bin/Release/net10.0-windows/`. To open the project in Visual Studio, use Visual Studio 2026 or later.
+The output is in `SteamRouteTool/bin/Release/net10.0-windows/`. To open the solution (`SteamRouteTool.slnx`) in Visual Studio, use Visual Studio 2026 or later.
+
+Tests use xUnit v3 on Microsoft.Testing.Platform (enabled in `global.json`) and cover config parsing and firewall rule handling without touching the real firewall. GitHub Actions builds and tests every pull request and push to `main`.
+
+## Releases
+
+Pushing a tag that matches the version in `SteamRouteTool/SteamRouteTool.csproj` (e.g. `v1.0.7`) publishes a self-contained `SteamRouteTool-<version>-win-x64.exe` to [GitHub Releases](../../releases), with `SHA256SUMS.txt` and the matching `CHANGELOG.md` section as release notes.
 
 ## Images
 

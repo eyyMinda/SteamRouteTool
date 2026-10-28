@@ -1,31 +1,26 @@
-using System;
 using System.Net.NetworkInformation;
-using System.Threading.Tasks;
 
-namespace SteamRouteTool.Services
+namespace SteamRouteTool.Services;
+
+public sealed class PingService
 {
-    public sealed class PingService
+    readonly int timeoutMs;
+
+    public PingService(TimeSpan timeout)
     {
-        readonly int timeoutMs;
+        timeoutMs = (int)timeout.TotalMilliseconds;
+    }
 
-        public PingService(TimeSpan timeout)
+    /// <summary>Returns the round-trip time in ms, or null if the host didn't answer in time.</summary>
+    public async Task<int?> PingAsync(string address)
+    {
+        try
         {
-            timeoutMs = (int)timeout.TotalMilliseconds;
+            using Ping ping = new Ping();
+            PingReply reply = await ping.SendPingAsync(address, timeoutMs);
+            if (reply.Status == IPStatus.Success) { return (int)reply.RoundtripTime; }
         }
-
-        /// <summary>Returns the round-trip time in ms, or null if the host didn't answer in time.</summary>
-        public async Task<int?> PingAsync(string address)
-        {
-            try
-            {
-                using (Ping ping = new Ping())
-                {
-                    PingReply reply = await ping.SendPingAsync(address, timeoutMs);
-                    if (reply.Status == IPStatus.Success) { return (int)reply.RoundtripTime; }
-                }
-            }
-            catch (PingException) { }
-            return null;
-        }
+        catch (PingException) { }
+        return null;
     }
 }

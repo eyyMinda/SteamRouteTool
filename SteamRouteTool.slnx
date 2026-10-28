@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SteamRouteTool.Tests/SteamRouteTool.Tests.csproj" />
+  <Project Path="SteamRouteTool/SteamRouteTool.csproj" />
+</Solution>
