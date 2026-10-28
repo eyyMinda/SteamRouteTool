@@ -3,6 +3,22 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [1.0.5] - 2026-10-28
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Fixed
+- Ping results were written to the route list from background threads, which could corrupt the list or crash the app. Pings now run asynchronously and update the list safely.
+- Pings check the reply status instead of treating a 0 ms reply as a failure, time out after 2 seconds, and run concurrently instead of using one thread per route.
+- If the Steam network config can't be loaded, the app shows the error with a **Retry** option instead of crashing.
+- Firewall errors (e.g. not running as administrator, or the firewall service stopped) show a message instead of crashing.
+- If re-applying firewall rules on launch fails, the list still shows every route that's currently blocked. Previously one failure stopped the rest from being shown.
+- **Clear Rules** no longer unchecks everything when removing the rules fails.
+- The "Blocked" header now toggles based on the actual checkbox state, and asks for confirmation before blocking every route.
+- Ping Routes is disabled while a ping run is in progress.
+
+### Changed
+- README screenshot is now stored in the repository (the old externally hosted image was unreachable).
+
 ## [1.0.4] - 2026-10-28
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
 

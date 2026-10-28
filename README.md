@@ -2,7 +2,7 @@
 
 A tool for blocking routes in Steam games that use Valve's SDR (Steam Datagram Relay) network config.
 
-Current version: **1.0.4**. See [CHANGELOG.md](CHANGELOG.md) for release history.
+Current version: **1.0.5**. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Supports:
 
@@ -39,7 +39,7 @@ The output is in `SteamRouteTool/bin/Release/net10.0-windows/`. To open the proj
 
 ## Images
 
-![Main](https://dev.froody.tech/SteamRouteTool/img/Main.png)
+![Steam Route Tool main window](docs/screenshot.png)
 
 ## Credits
 

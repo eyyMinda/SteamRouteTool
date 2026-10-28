@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SteamRouteTool
@@ -16,10 +15,10 @@ namespace SteamRouteTool
     {
         public List<Route> routes = new List<Route>();
         int rowCount = 0;
-        bool columnChecked = false;
         bool firstLoad = true;
         string networkconfigURL = @"https://api.steampowered.com/ISteamApps/GetSDRConfig/v1?appid=730";
-        static readonly HttpClient httpClient = new HttpClient();
+        static readonly HttpClient httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(15) };
+        const int PingTimeoutMs = 2000;
 
         // Firewall rules are named "SteamRouteTool-<PROTOCOL>-<route>", one per protocol per blocked route.
         const string RulePrefix = "SteamRouteTool-";
@@ -38,8 +37,7 @@ namespace SteamRouteTool
         public Main()
         {
             InitializeComponent();
-            Thread populateRoutesThread = new Thread(new ThreadStart(PopulateRoutes));
-            populateRoutesThread.Start();
+            Shown += async (sender, e) => await LoadRoutesAsync();
         }
 
         private static dynamic GetFirewallPolicy()
@@ -83,12 +81,12 @@ namespace SteamRouteTool
             return rules.Select(rule => (string)rule.Name).ToList();
         }
 
+        // Removing a name that doesn't exist is a no-op, so any exception here is a real failure (e.g. access denied).
         private static void RemoveRules(dynamic fwPolicy2, IEnumerable<string> ruleNames)
         {
             foreach (string ruleName in ruleNames)
             {
-                try { fwPolicy2.Rules.Remove(ruleName); }
-                catch { }
+                fwPolicy2.Rules.Remove(ruleName);
             }
         }
 
@@ -97,9 +95,56 @@ namespace SteamRouteTool
             RemoveRules(fwPolicy2, RuleProtocols.Keys.Select(protocol => GetRuleName(protocol, routeName)));
         }
 
-        private void PopulateRoutes()
+        // Runs a firewall change, showing an error instead of crashing if Windows Firewall rejects it.
+        private static bool TryFirewall(Action action)
         {
-            string raw = httpClient.GetStringAsync(networkconfigURL).GetAwaiter().GetResult();
+            try
+            {
+                action();
+                return true;
+            }
+            catch (Exception ex) when (ex is COMException || ex is UnauthorizedAccessException)
+            {
+                MessageBox.Show("Couldn't update the Windows Firewall rules:" + Environment.NewLine + ex.Message + Environment.NewLine + Environment.NewLine +
+                    "Make sure the Windows Defender Firewall service is running and the tool is running as administrator.",
+                    "Steam Route Tool - Firewall Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        private async Task LoadRoutesAsync()
+        {
+            while (true)
+            {
+                try
+                {
+                    string raw = await httpClient.GetStringAsync(networkconfigURL);
+                    ParseRoutes(raw);
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    DialogResult retry = MessageBox.Show("Couldn't load the Steam network config:" + Environment.NewLine + ex.Message,
+                        "Steam Route Tool - Getting Routes Failed", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+                    if (retry != DialogResult.Retry)
+                    {
+                        Close();
+                        return;
+                    }
+                }
+            }
+
+            btn_PingRoutes.Enabled = true;
+            lb_GettingRoutes.Visible = false;
+            btn_About.Visible = true;
+            PopulateRouteDataGrid();
+        }
+
+        // Parses into new collections first, so a malformed config doesn't leave routes half loaded.
+        private void ParseRoutes(string raw)
+        {
+            List<Route> parsedRoutes = new List<Route>();
+            int parsedRowCount = 0;
             JsonObject config = JsonNode.Parse(raw).AsObject();
 
             foreach (KeyValuePair<string, JsonNode> rc in config["pops"].AsObject())
@@ -115,31 +160,18 @@ namespace SteamRouteTool
                     foreach (JsonNode range in relays)
                     {
                         route.ranges.Add(range["ipv4"].GetValue<string>(), range["port_range"].ToJsonString());
-                        route.row_index.Add(rowCount);
-                        rowCount++;
+                        route.row_index.Add(parsedRowCount);
+                        parsedRowCount++;
                     }
                     route.pw = pop["partners"] != null && pop["partners"].GetValue<int>() == 2;
                     route.extended = false;
                     route.all_check = false;
-                    routes.Add(route);
+                    parsedRoutes.Add(route);
                 }
             }
 
-            btn_PingRoutes.BeginInvoke(new MethodInvoker(() =>
-            {
-                btn_PingRoutes.Enabled = true;
-            }));
-            lb_GettingRoutes.BeginInvoke(new MethodInvoker(() =>
-            {
-                lb_GettingRoutes.Visible = false;
-            }));
-            btn_About.BeginInvoke(new MethodInvoker(() =>
-            {
-                btn_About.Visible = true;
-            }));
-
-            if (InvokeRequired) { Invoke((Action)PopulateRouteDataGrid); }
-            else { PopulateRouteDataGrid(); }
+            routes = parsedRoutes;
+            rowCount = parsedRowCount;
         }
 
         private void PopulateRouteDataGrid()
@@ -172,77 +204,57 @@ namespace SteamRouteTool
 
             if (firstLoad)
             {
-                PingRoutes();
-                RestoreBlockedRoutes();
+                _ = PingRoutesAsync();
+                TryFirewall(RestoreBlockedRoutes);
             }
             firstLoad = false;
         }
 
-        private void PingSingleRoute(Route route)
-        {
-            Thread thread = new Thread(() =>
-            {
-                for (int i = 0; i < route.ranges.Count; i++)
-                {
-                    routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.BackColor = Color.Black;
-                    string responseTime = PingHost(route.ranges.Keys.ToArray()[i]);
-                    if (responseTime != "-1")
-                    {
-                        if (Convert.ToInt32(responseTime) <= 50) { routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.ForeColor = Color.Green; }
-                        if (Convert.ToInt32(responseTime) > 50 && Convert.ToInt32(responseTime) <= 100) { routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.ForeColor = Color.Orange; }
-                        if (Convert.ToInt32(responseTime) > 100) { routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.ForeColor = Color.Red; }
-                    }
-                    else
-                    {
-                        routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.ForeColor = Color.DarkRed;
-                    }
-                    routeDataGrid.Rows[route.row_index[i]].Cells[1].Value = responseTime;
-                    routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.BackColor = Color.White;
-                }
-            });
-
-            thread.Start();
-        }
-
-        private void PingRoutes()
-        {
-            foreach (Route route in routes)
-            {
-                Thread thread = new Thread(() =>
-                {
-                    for (int i = 0; i < route.ranges.Count; i++)
-                    {
-                        routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.BackColor = Color.Black;
-                        string responseTime = PingHost(route.ranges.Keys.ToArray()[i]);
-                        if (responseTime != "-1")
-                        {
-                            if (Convert.ToInt32(responseTime) <= 50) { routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.ForeColor = Color.Green; }
-                            if (Convert.ToInt32(responseTime) > 50 && Convert.ToInt32(responseTime) <= 100) { routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.ForeColor = Color.Orange; }
-                            if (Convert.ToInt32(responseTime) > 100) { routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.ForeColor = Color.Red; }
-                        }
-                        else
-                        {
-                            routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.ForeColor = Color.DarkRed;
-                        }
-                        routeDataGrid.Rows[route.row_index[i]].Cells[1].Value = responseTime;
-                        routeDataGrid.Rows[route.row_index[i]].Cells[1].Style.BackColor = Color.White;
-                    }
-                });
-
-                thread.Start();
-            }
-        }
-
-        public static string PingHost(string host)
+        // Returns the round-trip time in ms, or null if the relay didn't answer in time.
+        private static async Task<long?> PingHostAsync(string host)
         {
             try
             {
-                Ping ping = new Ping();
-                PingReply pingreply = ping.Send(host);
-                if (pingreply.RoundtripTime == 0) { return "-1"; }
-                else { return pingreply.RoundtripTime.ToString(); }
+                using (Ping ping = new Ping())
+                {
+                    PingReply reply = await ping.SendPingAsync(host, PingTimeoutMs);
+                    if (reply.Status == IPStatus.Success) { return reply.RoundtripTime; }
+                }
             }
-            catch { return "-1"; }
+            catch (PingException) { }
+            return null;
+        }
+
+        private static Color GetPingColor(long? responseTime)
+        {
+            if (responseTime == null) { return Color.DarkRed; }
+            if (responseTime <= 50) { return Color.Green; }
+            if (responseTime <= 100) { return Color.Orange; }
+            return Color.Red;
+        }
+
+        // Awaited on the UI thread, so the grid is only ever updated from the UI thread.
+        private async Task PingRelayAsync(Route route, int relayIndex)
+        {
+            DataGridViewCell cell = routeDataGrid.Rows[route.row_index[relayIndex]].Cells[1];
+            cell.Style.BackColor = Color.Black;
+            long? responseTime = await PingHostAsync(route.ranges.Keys.ElementAt(relayIndex));
+            if (IsDisposed) { return; }
+            cell.Style.ForeColor = GetPingColor(responseTime);
+            cell.Value = responseTime?.ToString() ?? "-1";
+            cell.Style.BackColor = Color.White;
+        }
+
+        private Task PingRouteAsync(Route route)
+        {
+            return Task.WhenAll(Enumerable.Range(0, route.ranges.Count).Select(i => PingRelayAsync(route, i)));
+        }
+
+        private async Task PingRoutesAsync()
+        {
+            btn_PingRoutes.Enabled = false;
+            await Task.WhenAll(routes.Select(PingRouteAsync));
+            btn_PingRoutes.Enabled = true;
         }
 
         // Reads the blocked addresses from existing rules, removes every rule this tool owns,
@@ -264,8 +276,8 @@ namespace SteamRouteTool
                 foreach (string address in remoteAddresses.Split(',')) { blockedAddresses[routeName].Add(address.Split('/')[0]); }
             }
 
-            RemoveRules(fwPolicy2, GetRuleNames(toolRules));
-
+            // Show what is currently blocked first, so the list stays accurate even if re-applying the rules fails.
+            List<Route> blockedRoutes = new List<Route>();
             foreach (Route route in routes)
             {
                 if (!blockedAddresses.ContainsKey(route.name)) { continue; }
@@ -288,29 +300,55 @@ namespace SteamRouteTool
                 {
                     foreach (int index in route.row_index) { routeDataGrid.Rows[index].Visible = true; }
                 }
-                SetRule(route);
+                blockedRoutes.Add(route);
             }
+
+            TryFirewall(() =>
+            {
+                RemoveRules(fwPolicy2, GetRuleNames(toolRules));
+                foreach (Route route in blockedRoutes)
+                {
+                    SetRule(route);
+                }
+            });
         }
 
         private void Btn_ClearRules_Click(object sender, EventArgs e)
         {
-            dynamic fwPolicy2 = GetFirewallPolicy();
-            RemoveRules(fwPolicy2, GetRuleNames(GetToolRules(fwPolicy2)));
-            for (int i = 0; i < routeDataGrid.Rows.Count; i++) { routeDataGrid.Rows[i].Cells[2].Value = false; }
-            columnChecked = false;
+            bool cleared = TryFirewall(() =>
+            {
+                dynamic fwPolicy2 = GetFirewallPolicy();
+                RemoveRules(fwPolicy2, GetRuleNames(GetToolRules(fwPolicy2)));
+            });
+            if (!cleared) { return; }
+
+            SetAllBlocked(false);
             MessageBox.Show("You have cleared all firewall rules created by this tool.", "Steam Route Tool - Rules Clear");
         }
 
-        private void Btn_PingRoutes_Click(object sender, EventArgs e)
+        private async void Btn_PingRoutes_Click(object sender, EventArgs e)
         {
-            PingRoutes();
+            await PingRoutesAsync();
         }
 
         void RouteDataGrid_CurrentCellDirtyStateChanged(object sender, EventArgs e)
         {
-            if (routeDataGrid.CurrentCell.ColumnIndex == 2 && routeDataGrid.IsCurrentCellDirty)
+            if (routeDataGrid.CurrentCell != null && routeDataGrid.CurrentCell.ColumnIndex == 2 && routeDataGrid.IsCurrentCellDirty)
             {
                 routeDataGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            }
+        }
+
+        private bool AreAllBlocked()
+        {
+            return routeDataGrid.Rows.Cast<DataGridViewRow>().All(row => (bool)row.Cells[2].Value);
+        }
+
+        private void SetAllBlocked(bool blocked)
+        {
+            for (int i = 0; i < routeDataGrid.Rows.Count; i++)
+            {
+                routeDataGrid.Rows[i].Cells[2].Value = blocked;
             }
         }
 
@@ -338,48 +376,13 @@ namespace SteamRouteTool
                 currentRoute.extended ^= true;
                 currentRoute.all_check ^= true;
                 PopulateRouteDataGrid();
-                PingSingleRoute(currentRoute);
+                _ = PingRouteAsync(currentRoute);
             }
 
             if (e.ColumnIndex == 1 && e.RowIndex != -1)
             {
-                Thread thread = new Thread(() =>
-                {
-                    Route currentRoute = routes.Where(x => x.row_index.Contains(e.RowIndex)).First();
-                    for (int i = 0; i < currentRoute.row_index.Count; i++)
-                    {
-                        if (currentRoute.row_index[i] == e.RowIndex)
-                        {
-                            routeDataGrid.Rows[e.RowIndex].Cells[1].Style.BackColor = Color.Black;
-                            string responseTime = PingHost(currentRoute.ranges.Keys.ToArray()[i]);
-
-                            if (responseTime != "-1")
-                            {
-                                if (Convert.ToInt32(responseTime) <= 50)
-                                {
-                                    routeDataGrid.Rows[e.RowIndex].Cells[1].Style.ForeColor = Color.Green;
-                                }
-                                if (Convert.ToInt32(responseTime) > 50 && Convert.ToInt32(responseTime) <= 100)
-                                {
-                                    routeDataGrid.Rows[e.RowIndex].Cells[1].Style.ForeColor = Color.Orange;
-                                }
-                                if (Convert.ToInt32(responseTime) > 100)
-                                {
-                                    routeDataGrid.Rows[e.RowIndex].Cells[1].Style.ForeColor = Color.Red;
-                                }
-                            }
-                            else
-                            {
-                                routeDataGrid.Rows[e.RowIndex].Cells[1].Style.ForeColor = Color.DarkRed;
-                            }
-
-
-                            routeDataGrid.Rows[e.RowIndex].Cells[1].Value = responseTime;
-                            routeDataGrid.Rows[e.RowIndex].Cells[1].Style.BackColor = Color.White;
-                        }
-                    }
-                });
-                thread.Start();
+                Route currentRoute = routes.Where(x => x.row_index.Contains(e.RowIndex)).First();
+                _ = PingRelayAsync(currentRoute, currentRoute.row_index.IndexOf(e.RowIndex));
             }
 
             if (e.ColumnIndex == 2 && e.RowIndex != -1)
@@ -387,35 +390,32 @@ namespace SteamRouteTool
                 Route currentRoute = routes.Where(x => x.row_index.Contains(e.RowIndex)).First();
                 if (!currentRoute.extended) { currentRoute.all_check = true; }
                 else { currentRoute.all_check = false; }
-                SetRule(currentRoute);
+                if (!TryFirewall(() => SetRule(currentRoute)))
+                {
+                    DataGridViewCell cell = routeDataGrid.Rows[e.RowIndex].Cells[2];
+                    cell.Value = !(bool)cell.Value;
+                }
             }
 
             if (e.ColumnIndex == 2 && e.RowIndex == -1)
-           { 
-                if (!columnChecked)
+            {
+                // The header toggles between "all blocked" and "none blocked", based on the rows' current state.
+                bool blockAll = !AreAllBlocked();
+                if (blockAll)
                 {
-                    for (int i = 0; i < routeDataGrid.Rows.Count; i++)
-                    {
-                        routeDataGrid.Rows[i].Cells[2].Value = true;
-                    }
+                    DialogResult confirm = MessageBox.Show("Block every route? You won't be able to connect to any Valve server until you unblock some.",
+                        "Steam Route Tool - Block All", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    if (confirm != DialogResult.Yes) { return; }
+                }
+
+                SetAllBlocked(blockAll);
+                TryFirewall(() =>
+                {
                     foreach (Route route in routes)
                     {
                         SetRule(route);
                     }
-                    columnChecked = true;
-                }
-                else if (columnChecked)
-                {
-                    for (int i = 0; i < routeDataGrid.Rows.Count; i++)
-                    {
-                        routeDataGrid.Rows[i].Cells[2].Value = false;
-                    }
-                    foreach (Route route in routes)
-                    {
-                        SetRule(route);
-                    }
-                    columnChecked = false;
-                }
+                });
             }
         }
 
