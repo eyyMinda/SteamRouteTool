@@ -48,7 +48,7 @@
             <TextBlock Text="Minimize to tray" FontWeight="SemiBold" />
             <TextBlock Style="{StaticResource SecondaryText}">
               Minimizing hides the window from the taskbar and keeps an icon in the notification area. Click the icon to open the window again,
-              or right-click it to unblock all routes or exit. The close button still exits the app.
+              or right-click it to switch presets, unblock all routes or exit. The close button still exits the app.
             </TextBlock>
           </StackPanel>
         </DockPanel>

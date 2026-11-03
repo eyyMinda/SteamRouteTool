@@ -4,7 +4,7 @@ Choose which Valve relay locations your games can connect to.
 
 Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
 
-Current version: **2.0.6**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+Current version: **2.0.7**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ![Steam Route Tool: the Routes page, with Amsterdam expanded to show its relays](docs/screenshot.png)
 
@@ -24,6 +24,7 @@ Get `SteamRouteTool-<version>-win-x64.exe` from [Releases](../../releases). It's
 - **Play in one region:** filter to a region (or search) and use **Block all except shown**.
 - **Sort and filter:** search by name, code or region; filter by region or blocked state; group by region or sort by any column.
 - **Fast, reliable pings:** a quick round fills the list in a second or two; anything that didn't answer is retried one at a time for networks that drop parallel pings. Last session's pings are shown straight away.
+- **Presets:** save the blocked routes under your own names per game (e.g. "EU blocked", "Warsaw only") and switch between them from the Routes page or the tray icon, with Undo.
 - **Game profiles:** each game remembers its blocked routes and applies them when you switch games.
 - **Block only while the app is open** (optional): remove all rules when the app closes and re-apply your selection on the next start.
 - **Runs in the background** (optional): minimize to the notification area instead of the taskbar, and start with Windows (minimized, without an administrator prompt).
@@ -38,7 +39,7 @@ The app's **How to use** page explains everything step by step.
 
 - **Theme:** System, Light or Dark.
 - **Start with Windows:** starts the app minimized when you sign in, through a Task Scheduler task (named `SteamRouteTool`) that runs it with administrator rights, so there's no prompt.
-- **Minimize to tray:** minimizing hides the window from the taskbar and keeps an icon in the notification area. Click it to open the window; right-click it to unblock all routes or exit. The close button still exits.
+- **Minimize to tray:** minimizing hides the window from the taskbar and keeps an icon in the notification area. Click it to open the window; right-click it to switch presets, unblock all routes or exit. The close button still exits.
 - **Ping routes automatically** when the app starts or you switch games. Turn it off to see the last known pings until you click **Ping all**.
 - **Unblock all routes when closing:** routes are only blocked while the app is open. Your selection is kept and applied again on the next start.
 - Shortcuts to the folder with your settings and game profiles, and to Windows Defender Firewall, where the rules can be inspected.

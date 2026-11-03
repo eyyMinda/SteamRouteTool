@@ -6,7 +6,7 @@ namespace SteamRouteTool;
 
 /// <summary>
 /// The notification area icon, shown while "Minimize to tray" is on. Minimizing the window then hides it from the taskbar;
-/// clicking the icon brings it back, and its menu has Open, Unblock all and Exit.
+/// clicking the icon brings it back, and its menu has Open, Presets, Unblock all and Exit.
 /// </summary>
 public sealed class TrayIcon : IDisposable
 {
@@ -28,6 +28,7 @@ public sealed class TrayIcon : IDisposable
         icon.ContextMenuRequested += () => icon.ShowMenu(
         [
             new NotifyIcon.MenuItem("Open Steam Route Tool", Restore, IsDefault: true),
+            new NotifyIcon.MenuItem("Presets", Submenu: GetPresetItems()),
             new NotifyIcon.MenuItem("Unblock all", () => routes.UnblockAllCommand.Execute(null), IsEnabled: routes.UnblockAllCommand.CanExecute(null)),
             null,
             new NotifyIcon.MenuItem("Exit", exit)
@@ -84,6 +85,16 @@ public sealed class TrayIcon : IDisposable
     void UpdateVisibility()
     {
         icon.Visible = settings.MinimizeToTray || !window.IsVisible;
+    }
+
+    // The selected game's presets, the one matching what's blocked ticked. Choosing one applies it.
+    List<NotifyIcon.MenuItem?> GetPresetItems()
+    {
+        if (routes.Presets.Count == 0) { return [new NotifyIcon.MenuItem("No presets yet", IsEnabled: false)]; }
+        return routes.Presets
+            .Select(preset => (NotifyIcon.MenuItem?)new NotifyIcon.MenuItem(preset.Name, () => _ = routes.ApplyPresetAsync(preset),
+                IsEnabled: routes.CanChangeRules, IsChecked: preset == routes.SelectedPreset))
+            .ToList();
     }
 
     void UpdateText()

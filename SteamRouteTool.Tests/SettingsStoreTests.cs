@@ -19,6 +19,7 @@ public sealed class SettingsStoreTests : IDisposable
         AppSettings settings = new AppSettings { Theme = "Dark", PingOnStartup = false, GroupByRegion = false, UnblockOnExit = true, MinimizeToTray = true, LastAppId = 570 };
         settings.Profiles[730] = new GameProfile { BlockedRelays = ["155.133.248.36", "155.133.248.37"] };
         settings.Profiles[570] = new GameProfile();
+        settings.Presets[730] = [new GamePreset { Name = "Warsaw only", BlockedRoutes = ["ams", "fra"], BlockedRelays = ["155.133.230.50"] }];
 
         new SettingsStore(SettingsPath).Save(settings);
         AppSettings loaded = new SettingsStore(SettingsPath).Load();
@@ -31,6 +32,10 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(570, loaded.LastAppId);
         Assert.Equal(["155.133.248.36", "155.133.248.37"], loaded.Profiles[730].BlockedRelays);
         Assert.Empty(loaded.Profiles[570].BlockedRelays);
+        GamePreset preset = Assert.Single(loaded.Presets[730]);
+        Assert.Equal("Warsaw only", preset.Name);
+        Assert.Equal(["ams", "fra"], preset.BlockedRoutes);
+        Assert.Equal(["155.133.230.50"], preset.BlockedRelays);
     }
 
     [Fact]

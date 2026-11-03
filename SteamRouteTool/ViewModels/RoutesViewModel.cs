@@ -118,6 +118,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         OnPropertyChanged(nameof(BlockedSummary));
         OnPropertyChanged(nameof(HasNoShownRoutes));
         OnPropertyChanged(nameof(AutoSelectPreview));
+        UpdateSelectedPreset();
     }
 
     public string Summary => $"{BlockedText} · {RoutesView.Cast<object>().Count()} shown";
@@ -171,7 +172,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     {
         int load = ++loadVersion;
         IsLoading = true;
-        CanUndoAutoSelect = false;
+        CanUndo = false;
         ErrorMessage = null;
         StatusMessage = null;
 
@@ -245,6 +246,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         RegionOptions.Add(AllRegions);
         foreach (string region in RegionClassifier.All.Where(region => pops.Any(pop => pop.Region == region))) { RegionOptions.Add(region); }
         SelectedRegion = RegionOptions.Contains(selected) ? selected : AllRegions;
+        LoadPresets();
         NotifySummaryChanged();
     }
 
@@ -333,7 +335,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             return;
         }
 
-        CanUndoAutoSelect = false;
+        CanUndo = false;
         bool unblocksAny = route.Pop.Relays.Any(relay => blockedRelays.Contains(relay) && !relays.Contains(relay));
         if (await RunFirewallChangeAsync(() => firewall.SetBlockedRelays(route.Pop, relays)))
         {
@@ -377,7 +379,7 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     async Task<bool> ApplyBlockedAsync(HashSet<Relay> newBlocked, string message)
     {
-        CanUndoAutoSelect = false;
+        CanUndo = false;
         List<RouteViewModel> unblocked = Routes.Where(route => route.Pop.Relays.Any(relay => blockedRelays.Contains(relay) && !newBlocked.Contains(relay))).ToList();
         bool applied = await RunFirewallChangeAsync(() => firewall.SyncRules(pops, newBlocked));
         if (applied)
@@ -446,7 +448,187 @@ public sealed partial class RoutesViewModel : ObservableObject
     {
         ErrorMessage = null;
         StatusMessage = null;
-        CanUndoAutoSelect = false;
+        CanUndo = false;
+    }
+
+    // ----- Undo -----
+
+    /// <summary>True right after Auto select or a preset was applied, until anything else changes the blocked routes.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UndoCommand))]
+    bool canUndo;
+
+    // What was blocked before the last Auto select or preset, for Undo.
+    HashSet<Relay>? blockedBeforeUndo;
+
+    void OfferUndo(HashSet<Relay> before)
+    {
+        blockedBeforeUndo = before;
+        CanUndo = true;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    async Task UndoAsync()
+    {
+        if (blockedBeforeUndo == null) { return; }
+        await ApplyBlockedAsync(blockedBeforeUndo, "Restored the routes that were blocked before.");
+    }
+
+    // ----- Presets -----
+
+    /// <summary>The selected game's presets.</summary>
+    public ObservableCollection<PresetViewModel> Presets { get; } = new ObservableCollection<PresetViewModel>();
+
+    public bool HasPresets => Presets.Count > 0;
+
+    /// <summary>Shown in the preset list when no preset matches what's blocked.</summary>
+    public string PresetPlaceholder => HasPresets ? "No preset" : "No presets yet";
+
+    /// <summary>The preset that matches what's blocked now, or null. Picking one in the list applies it.</summary>
+    [ObservableProperty]
+    PresetViewModel? selectedPreset;
+
+    bool updatingSelectedPreset;
+
+    /// <summary>Whether the panel to save, rename and delete presets is open.</summary>
+    [ObservableProperty]
+    bool isPresetsOpen;
+
+    /// <summary>The name typed to save the current blocked routes under.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SavePresetLabel))]
+    [NotifyCanExecuteChangedFor(nameof(SavePresetCommand))]
+    string newPresetName = "";
+
+    /// <summary>Feedback inside the presets panel, e.g. "Saved "EU blocked".".</summary>
+    [ObservableProperty]
+    string? presetMessage;
+
+    /// <summary>"Update" when the typed name is an existing preset (it's then overwritten), otherwise "Save".</summary>
+    public string SavePresetLabel => FindPreset(PresetLogic.CleanName(NewPresetName)) != null ? "Update" : "Save";
+
+    List<GamePreset> GamePresets
+    {
+        get
+        {
+            if (!settings.Presets.TryGetValue(SelectedGame.AppId, out List<GamePreset>? presets))
+            {
+                presets = new List<GamePreset>();
+                settings.Presets[SelectedGame.AppId] = presets;
+            }
+            return presets;
+        }
+    }
+
+    PresetViewModel? FindPreset(string? name)
+    {
+        return name == null ? null : Presets.FirstOrDefault(preset => preset.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    void LoadPresets()
+    {
+        Presets.Clear();
+        foreach (GamePreset preset in GamePresets) { Presets.Add(new PresetViewModel(this, preset)); }
+        OnPropertyChanged(nameof(HasPresets));
+        OnPropertyChanged(nameof(PresetPlaceholder));
+        OnPropertyChanged(nameof(SavePresetLabel));
+        SavePresetCommand.NotifyCanExecuteChanged();
+        PresetMessage = null;
+    }
+
+    // Shows which preset (if any) matches the blocked routes, without applying it.
+    void UpdateSelectedPreset()
+    {
+        updatingSelectedPreset = true;
+        SelectedPreset = pops.Count == 0 ? null : Presets.FirstOrDefault(preset => PresetLogic.Matches(preset.Model, pops, blockedRelays));
+        updatingSelectedPreset = false;
+    }
+
+    partial void OnSelectedPresetChanged(PresetViewModel? value)
+    {
+        if (updatingSelectedPreset || value == null) { return; }
+        _ = ApplyPresetAsync(value);
+    }
+
+    /// <summary>Blocks exactly what the preset says, with Undo.</summary>
+    public async Task ApplyPresetAsync(PresetViewModel preset)
+    {
+        if (!CanChangeRules || pops.Count == 0)
+        {
+            UpdateSelectedPreset();
+            return;
+        }
+        HashSet<Relay> before = blockedRelays.ToHashSet();
+        HashSet<Relay> blocked = PresetLogic.Resolve(preset.Model, pops);
+        int routes = CountBlockedRoutes(pops, blocked);
+        string message = $"Applied the preset \"{preset.Name}\": {routes} {(routes == 1 ? "route" : "routes")} blocked.";
+        if (await ApplyBlockedAsync(blocked, message)) { OfferUndo(before); }
+    }
+
+    /// <summary>Saves what's blocked now under the typed name, as a new preset or over the preset with that name.</summary>
+    [RelayCommand(CanExecute = nameof(CanSavePreset))]
+    void SavePreset()
+    {
+        string? name = PresetLogic.CleanName(NewPresetName);
+        if (name == null) { return; }
+        GamePreset captured = PresetLogic.Capture(name, pops, blockedRelays);
+        PresetViewModel? existing = FindPreset(name);
+        if (existing != null)
+        {
+            existing.Model.BlockedRoutes = captured.BlockedRoutes;
+            existing.Model.BlockedRelays = captured.BlockedRelays;
+            existing.Refresh();
+            PresetMessage = $"Updated \"{existing.Name}\" with the routes blocked now.";
+        }
+        else
+        {
+            GamePresets.Add(captured);
+            Presets.Add(new PresetViewModel(this, captured));
+            OnPropertyChanged(nameof(HasPresets));
+            OnPropertyChanged(nameof(PresetPlaceholder));
+            PresetMessage = $"Saved \"{name}\".";
+        }
+        settingsStore.Save(settings);
+        NewPresetName = "";
+        UpdateSelectedPreset();
+    }
+
+    bool CanSavePreset() => pops.Count > 0 && PresetLogic.CleanName(NewPresetName) != null;
+
+    /// <summary>Renames a preset. Empty names and names of other presets are refused; returns whether it was renamed.</summary>
+    public bool RenamePreset(PresetViewModel preset, string newName)
+    {
+        string? name = PresetLogic.CleanName(newName);
+        if (name == null)
+        {
+            PresetMessage = "A preset needs a name.";
+            return false;
+        }
+        PresetViewModel? other = FindPreset(name);
+        if (other != null && other != preset)
+        {
+            PresetMessage = $"There's already a preset named \"{other.Name}\".";
+            return false;
+        }
+        if (name == preset.Model.Name) { return true; }
+        preset.Model.Name = name;
+        settingsStore.Save(settings);
+        PresetMessage = $"Renamed to \"{name}\".";
+        OnPropertyChanged(nameof(SavePresetLabel));
+        return true;
+    }
+
+    public void DeletePreset(PresetViewModel preset)
+    {
+        if (!Confirm($"Delete the preset \"{preset.Name}\"? The routes blocked now stay as they are.")) { return; }
+        GamePresets.Remove(preset.Model);
+        Presets.Remove(preset);
+        settingsStore.Save(settings);
+        OnPropertyChanged(nameof(HasPresets));
+        OnPropertyChanged(nameof(PresetPlaceholder));
+        OnPropertyChanged(nameof(SavePresetLabel));
+        PresetMessage = $"Deleted \"{preset.Name}\".";
+        UpdateSelectedPreset();
     }
 
     // ----- Auto select -----
@@ -460,14 +642,6 @@ public sealed partial class RoutesViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AutoSelectPreview), nameof(AutoSelectLabel))]
     int autoRouteCount;
-
-    /// <summary>True right after Auto select was applied, until anything else changes the blocked routes.</summary>
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(UndoAutoSelectCommand))]
-    bool canUndoAutoSelect;
-
-    // What was blocked before the last Auto select, for Undo.
-    HashSet<Relay>? blockedBeforeAutoSelect;
 
     public string AutoSelectLabel => $"{AutoRouteCount} fastest";
 
@@ -532,21 +706,11 @@ public sealed partial class RoutesViewModel : ObservableObject
         HashSet<Relay> blocked = pops.Where(pop => !keptSet.Contains(pop)).SelectMany(pop => pop.Relays).ToHashSet();
         HashSet<Relay> before = blockedRelays.ToHashSet();
         string message = $"Auto select kept the {kept.Count} fastest {(kept.Count == 1 ? "route" : "routes")}: {DescribeRoutes(kept, 5)}. The other {pops.Count - kept.Count} are blocked.";
-        if (await ApplyBlockedAsync(blocked, message))
-        {
-            blockedBeforeAutoSelect = before;
-            CanUndoAutoSelect = true;
-        }
+        if (await ApplyBlockedAsync(blocked, message)) { OfferUndo(before); }
     }
 
     bool CanApplyAutoSelect() => CanChangeRules && !IsPinging;
 
-    [RelayCommand(CanExecute = nameof(CanUndoAutoSelect))]
-    async Task UndoAutoSelectAsync()
-    {
-        if (blockedBeforeAutoSelect == null) { return; }
-        await ApplyBlockedAsync(blockedBeforeAutoSelect, "Restored the routes that were blocked before Auto select.");
-    }
 
     // ----- Pinging -----
 

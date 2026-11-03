@@ -52,6 +52,24 @@
 
       <Border Style="{StaticResource Card}">
         <StackPanel>
+          <TextBlock Text="Presets" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            A preset is a named set of blocked routes, for example "EU blocked" or "Warsaw only". Block the routes you want, click the save button next to
+            <Bold>Preset</Bold> at the top of the Routes page, type a name and click <Bold>Save</Bold>. Each game has its own presets.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            Pick a preset in the <Bold>Preset</Bold> list to block exactly its routes and unblock all others; <Bold>Undo</Bold> brings back what was blocked before.
+            The list shows which preset matches what's blocked now, or "No preset" once you change something. You can also switch presets from the tray icon's menu.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            To update a preset, block the routes you want and save again under its name. Rename a preset by editing its name in the same panel, or delete it with the bin button.
+            A route saved as fully blocked stays fully blocked even if Valve adds relays to it later.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
           <TextBlock Text="Game profiles" Style="{StaticResource SectionTitle}" />
           <TextBlock Style="{StaticResource BodyText}">
             Each game remembers its own blocked routes. When you switch games, that game's saved selection is applied to the firewall automatically.

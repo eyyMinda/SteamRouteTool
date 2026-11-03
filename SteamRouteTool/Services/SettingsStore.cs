@@ -19,11 +19,23 @@ public sealed class AppSettings
     public int LastAppId { get; set; } = Models.Game.CounterStrike2;
     /// <summary>Saved block profile per game (by app ID), applied to the firewall when switching to that game.</summary>
     public Dictionary<int, GameProfile> Profiles { get; set; } = new Dictionary<int, GameProfile>();
+    /// <summary>Named sets of blocked routes per game (by app ID), in the order they were created.</summary>
+    public Dictionary<int, List<GamePreset>> Presets { get; set; } = new Dictionary<int, List<GamePreset>>();
 }
 
 public sealed class GameProfile
 {
     /// <summary>Addresses of the relays blocked for this game.</summary>
+    public List<string> BlockedRelays { get; set; } = new List<string>();
+}
+
+/// <summary>A named set of blocked routes, e.g. "EU blocked" or "Warsaw only". See <see cref="PresetLogic"/>.</summary>
+public sealed class GamePreset
+{
+    public string Name { get; set; } = "";
+    /// <summary>Codes of routes blocked as a whole, so relays added to them later are blocked too.</summary>
+    public List<string> BlockedRoutes { get; set; } = new List<string>();
+    /// <summary>Addresses of individually blocked relays of routes that are only partly blocked.</summary>
     public List<string> BlockedRelays { get; set; } = new List<string>();
 }
 

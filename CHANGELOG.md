@@ -3,6 +3,22 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.7] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Presets:** save the blocked routes under your own name, per game, and switch between them in one click.
+  - The **Preset** list at the top of the Routes page applies a preset (Undo brings back what was blocked before) and shows which preset matches what's blocked now.
+  - The save button next to it opens a panel to save the current selection as a new preset or over an existing one, rename presets and delete them.
+  - Presets can also be switched from the tray icon's menu.
+  - Fully blocked routes are saved by route, so relays Valve adds to them later are blocked too.
+
+### Changed
+
+- **Undo** now also appears after applying a preset, not only after Auto select.
+
 ## [2.0.6] - 2026-11-03
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

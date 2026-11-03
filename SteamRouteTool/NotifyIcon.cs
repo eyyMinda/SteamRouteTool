@@ -15,7 +15,7 @@ public sealed class NotifyIcon : IDisposable
     const int NIM_ADD = 0, NIM_MODIFY = 1, NIM_DELETE = 2, NIM_SETVERSION = 4;
     const int NIF_MESSAGE = 0x1, NIF_ICON = 0x2, NIF_TIP = 0x4, NIF_INFO = 0x10, NIF_SHOWTIP = 0x80;
     const int NOTIFYICON_VERSION_4 = 4;
-    const int MF_STRING = 0x0, MF_GRAYED = 0x1, MF_SEPARATOR = 0x800;
+    const int MF_STRING = 0x0, MF_GRAYED = 0x1, MF_CHECKED = 0x8, MF_POPUP = 0x10, MF_SEPARATOR = 0x800;
     const int TPM_RIGHTBUTTON = 0x2, TPM_RETURNCMD = 0x100, TPM_NONOTIFY = 0x80;
     const int WM_NULL = 0x0;
     const int AllowDark = 1;
@@ -86,8 +86,12 @@ public sealed class NotifyIcon : IDisposable
         Shell_NotifyIcon(NIM_MODIFY, ref data);
     }
 
-    /// <summary>A menu entry; <see cref="IsDefault"/> shows it in bold (the action of a click on the icon).</summary>
-    public sealed record MenuItem(string Text, Action Action, bool IsDefault = false, bool IsEnabled = true);
+    /// <summary>
+    /// A menu entry. <see cref="IsDefault"/> shows it in bold (the action of a click on the icon); an entry with
+    /// <see cref="Submenu"/> opens that menu instead of running an action.
+    /// </summary>
+    public sealed record MenuItem(string Text, Action? Action = null, bool IsDefault = false, bool IsEnabled = true, bool IsChecked = false,
+        IReadOnlyList<MenuItem?>? Submenu = null);
 
     /// <summary>Shows a menu at the mouse pointer; null entries are separators. Returns once the menu has closed.</summary>
     public void ShowMenu(IReadOnlyList<MenuItem?> items)
@@ -95,14 +99,9 @@ public sealed class NotifyIcon : IDisposable
         IntPtr menu = CreatePopupMenu();
         try
         {
-            for (int i = 0; i < items.Count; i++)
-            {
-                MenuItem? item = items[i];
-                if (item == null) { AppendMenu(menu, MF_SEPARATOR, 0, null); continue; }
-                // Command IDs start at 1, as 0 means nothing was chosen.
-                AppendMenu(menu, MF_STRING | (item.IsEnabled ? 0 : MF_GRAYED), i + 1, item.Text);
-                if (item.IsDefault) { SetMenuDefaultItem(menu, i + 1, 0); }
-            }
+            // An entry's command ID is its index in this list plus 1, as 0 means nothing was chosen.
+            List<Action> actions = new List<Action>();
+            AppendItems(menu, items, actions);
 
             // The documented way to show a notification area menu: the owner must be the foreground window, or the
             // menu doesn't close on a click elsewhere; WM_NULL afterwards makes the next click on the icon work.
@@ -111,11 +110,35 @@ public sealed class NotifyIcon : IDisposable
             int chosen = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY, point.X, point.Y, Handle, IntPtr.Zero);
             PostMessage(Handle, WM_NULL, IntPtr.Zero, IntPtr.Zero);
             // After the menu is gone, not inside this window message (Exit disposes this window).
-            if (chosen > 0) { messageWindow.Dispatcher.BeginInvoke(items[chosen - 1]!.Action); }
+            if (chosen > 0) { messageWindow.Dispatcher.BeginInvoke(actions[chosen - 1]); }
         }
         finally
         {
+            // Also destroys the submenus.
             DestroyMenu(menu);
+        }
+    }
+
+    static void AppendItems(IntPtr menu, IReadOnlyList<MenuItem?> items, List<Action> actions)
+    {
+        foreach (MenuItem? item in items)
+        {
+            if (item == null)
+            {
+                AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, null);
+                continue;
+            }
+            int flags = (item.IsEnabled ? 0 : MF_GRAYED) | (item.IsChecked ? MF_CHECKED : 0);
+            if (item.Submenu != null)
+            {
+                IntPtr submenu = CreatePopupMenu();
+                AppendItems(submenu, item.Submenu, actions);
+                AppendMenu(menu, MF_POPUP | flags, submenu, item.Text);
+                continue;
+            }
+            actions.Add(item.Action ?? (() => { }));
+            AppendMenu(menu, MF_STRING | flags, actions.Count, item.Text);
+            if (item.IsDefault) { SetMenuDefaultItem(menu, actions.Count, 0); }
         }
     }
 
@@ -245,7 +268,7 @@ public sealed class NotifyIcon : IDisposable
     static extern IntPtr CreatePopupMenu();
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    static extern bool AppendMenu(IntPtr menu, int flags, int id, string? text);
+    static extern bool AppendMenu(IntPtr menu, int flags, IntPtr id, string? text);
 
     [DllImport("user32.dll")]
     static extern bool SetMenuDefaultItem(IntPtr menu, int item, int byPosition);

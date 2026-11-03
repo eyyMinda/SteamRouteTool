@@ -10,13 +10,70 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
-    <!-- Title and game -->
+    <!-- Title, preset and game -->
     <DockPanel Grid.Row="0" Margin="0,0,0,16">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
-        <TextBlock Text="Game" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,10,0" />
-        <ComboBox ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}" DisplayMemberPath="Name" Width="220"
-                  AutomationProperties.Name="Game" ToolTip="Each game keeps its own saved set of blocked routes" />
+        <TextBlock Text="Preset" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,10,0" />
+        <Grid Width="200">
+          <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name"
+                    IsEnabled="{Binding CanChangeRules}" AutomationProperties.Name="Preset"
+                    ToolTip="Pick a preset to block exactly its routes. Save presets with the button next to this list." />
+          <TextBlock Text="{Binding PresetPlaceholder}" Margin="12,0,36,0" VerticalAlignment="Center"
+                     IsHitTestVisible="False" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                     Visibility="{Binding SelectedPreset, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+        </Grid>
+        <ToggleButton x:Name="PresetsButton" IsChecked="{Binding IsPresetsOpen}" Margin="6,0,0,0" Padding="9,7"
+                      ToolTip="Save, rename and delete presets" AutomationProperties.Name="Manage presets">
+          <TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="14" />
+        </ToggleButton>
+        <TextBlock Text="Game" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="24,0,10,0" />
+        <ComboBox ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}" DisplayMemberPath="Name" Width="200"
+                  AutomationProperties.Name="Game" ToolTip="Each game keeps its own saved set of blocked routes and its own presets" />
       </StackPanel>
+      <Popup x:Name="PresetsPopup" IsOpen="{Binding IsPresetsOpen}" PlacementTarget="{Binding ElementName=PresetsButton}" Placement="Custom"
+             StaysOpen="False" AllowsTransparency="True" Closed="PresetsPopup_Closed">
+        <Border Width="400" Padding="16" CornerRadius="8" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+          <StackPanel>
+            <TextBlock Text="Save as preset" FontWeight="SemiBold" />
+            <TextBlock Text="Saves the routes and relays blocked now. Use an existing name to update that preset."
+                       Style="{StaticResource SecondaryText}" />
+            <DockPanel Margin="0,10,0,0">
+              <Button DockPanel.Dock="Right" Content="{Binding SavePresetLabel}" Command="{Binding SavePresetCommand}"
+                      Style="{DynamicResource AccentButtonStyle}" Margin="8,0,0,0" MinWidth="72" AutomationProperties.Name="Save preset" />
+              <TextBox Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" KeyDown="NewPresetName_KeyDown"
+                       AutomationProperties.Name="Preset name" />
+            </DockPanel>
+            <TextBlock Text="{Binding PresetMessage}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Visibility="{Binding PresetMessage, Converter={StaticResource VisibleWhen}}" />
+
+            <TextBlock Text="{Binding SelectedGame.Name, StringFormat='{}{0} presets'}" FontWeight="SemiBold" Margin="0,16,0,0" />
+            <TextBlock Text="No presets yet. Block the routes you want, then save them above." Style="{StaticResource SecondaryText}"
+                       Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+            <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0"
+                          Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}}">
+              <ItemsControl ItemsSource="{Binding Presets}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <DockPanel Margin="0,4">
+                      <Button DockPanel.Dock="Right" Command="{Binding DeleteCommand}" Margin="8,0,0,0" Padding="9,7" VerticalAlignment="Top"
+                              ToolTip="Delete this preset" AutomationProperties.Name="{Binding Name, StringFormat='Delete {0}'}">
+                        <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="14" />
+                      </Button>
+                      <StackPanel>
+                        <TextBox Text="{Binding Name}" MaxLength="40" KeyDown="PresetName_KeyDown" ToolTip="Edit to rename"
+                                 AutomationProperties.Name="{Binding Name, StringFormat='Rename {0}'}" />
+                        <TextBlock Text="{Binding Description}" Style="{StaticResource SecondaryText}" Margin="2,2,0,0" />
+                      </StackPanel>
+                    </DockPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </StackPanel>
+        </Border>
+      </Popup>
       <StackPanel>
         <TextBlock Text="Routes" Style="{StaticResource PageTitle}" />
         <TextBlock Text="{Binding Summary}" Style="{StaticResource SecondaryText}" Margin="0,2,0,0" />
@@ -140,8 +197,8 @@
               Visibility="{Binding StatusMessage, Converter={StaticResource VisibleWhen}}">
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissMessagesCommand}" Margin="8,0,0,0" VerticalAlignment="Center" />
-          <Button DockPanel.Dock="Right" Content="Undo" Command="{Binding UndoAutoSelectCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
-                  Visibility="{Binding CanUndoAutoSelect, Converter={StaticResource VisibleWhen}}" AutomationProperties.Name="Undo auto select" />
+          <Button DockPanel.Dock="Right" Content="Undo" Command="{Binding UndoCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+                  Visibility="{Binding CanUndo, Converter={StaticResource VisibleWhen}}" AutomationProperties.Name="Undo" />
           <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,10,0" />
           <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
         </DockPanel>
