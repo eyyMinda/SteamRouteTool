@@ -1,11 +1,6 @@
-using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Interop;
 using SteamRouteTool.Services;
 using SteamRouteTool.ViewModels;
-using Forms = System.Windows.Forms;
 
 namespace SteamRouteTool;
 
@@ -19,8 +14,7 @@ public sealed class TrayIcon : IDisposable
     readonly RoutesViewModel routes;
     readonly SettingsStore store;
     readonly AppSettings settings;
-    readonly Forms.NotifyIcon icon;
-    readonly ContextMenu menu;
+    readonly NotifyIcon icon = new NotifyIcon();
     WindowState restoreState = WindowState.Normal;
 
     public TrayIcon(Window window, RoutesViewModel routes, SettingsViewModel settingsViewModel, SettingsStore store, AppSettings settings, Action exit)
@@ -30,26 +24,15 @@ public sealed class TrayIcon : IDisposable
         this.store = store;
         this.settings = settings;
 
-        // A WPF menu, so it follows the app's light or dark theme.
-        menu = new ContextMenu { Placement = PlacementMode.MousePoint };
-        menu.Items.Add(MenuItem("Open Steam Route Tool", Restore, bold: true));
-        menu.Items.Add(new MenuItem { Header = "Unblock all", Command = routes.UnblockAllCommand });
-        menu.Items.Add(new Separator());
-        menu.Items.Add(MenuItem("Exit", exit));
-        // The menu only closes on a click elsewhere if it's in the foreground window.
-        menu.Opened += (sender, e) =>
-        {
-            if (PresentationSource.FromVisual(menu) is HwndSource source) { SetForegroundWindow(source.Handle); }
-        };
-
-        using Stream iconStream = Application.GetResourceStream(new Uri("pack://application:,,,/wifi.ico"))!.Stream;
-        icon = new Forms.NotifyIcon { Icon = new System.Drawing.Icon(iconStream, Forms.SystemInformation.SmallIconSize) };
-        icon.MouseClick += (sender, e) =>
-        {
-            if (e.Button == Forms.MouseButtons.Left) { Restore(); }
-            else if (e.Button == Forms.MouseButtons.Right) { menu.IsOpen = true; }
-        };
-        icon.BalloonTipClicked += (sender, e) => Restore();
+        icon.Click += Restore;
+        icon.ContextMenuRequested += () => icon.ShowMenu(
+        [
+            new NotifyIcon.MenuItem("Open Steam Route Tool", Restore, IsDefault: true),
+            new NotifyIcon.MenuItem("Unblock all", () => routes.UnblockAllCommand.Execute(null), IsEnabled: routes.UnblockAllCommand.CanExecute(null)),
+            null,
+            new NotifyIcon.MenuItem("Exit", exit)
+        ]);
+        icon.BalloonClick += Restore;
 
         UpdateText();
         routes.PropertyChanged += (sender, e) =>
@@ -60,25 +43,27 @@ public sealed class TrayIcon : IDisposable
         {
             if (e.PropertyName == nameof(SettingsViewModel.MinimizeToTray)) { UpdateVisibility(); }
         };
+        window.IsVisibleChanged += (sender, e) => UpdateVisibility();
         window.StateChanged += (sender, e) =>
         {
             if (window.WindowState == WindowState.Minimized && settings.MinimizeToTray) { HideToTray(); }
             else if (window.WindowState != WindowState.Minimized) { restoreState = window.WindowState; }
         };
-        UpdateVisibility();
+        // Not UpdateVisibility(): the window isn't shown yet, and starting in the tray goes through HideToTray().
+        icon.Visible = settings.MinimizeToTray;
     }
 
     /// <summary>Hides the window to the tray. The first time, a notification says the app is still running.</summary>
     public void HideToTray()
     {
         window.Hide();
-        icon.Visible = true;
+        UpdateVisibility();
         if (!settings.TrayHintShown)
         {
             settings.TrayHintShown = true;
             store.Save(settings);
-            icon.ShowBalloonTip(5000, "Steam Route Tool is still running",
-                "It keeps your routes as they are. Click the icon to open it, or right-click it to exit.", Forms.ToolTipIcon.None);
+            icon.ShowBalloon("Steam Route Tool is still running",
+                "It keeps your routes as they are. Click the icon to open it, or right-click it to exit.");
         }
     }
 
@@ -88,12 +73,10 @@ public sealed class TrayIcon : IDisposable
         window.Show();
         if (window.WindowState == WindowState.Minimized) { window.WindowState = restoreState; }
         window.Activate();
-        UpdateVisibility();
     }
 
     public void Dispose()
     {
-        icon.Visible = false;
         icon.Dispose();
     }
 
@@ -106,18 +89,6 @@ public sealed class TrayIcon : IDisposable
     void UpdateText()
     {
         string blocked = routes.BlockedSummary;
-        // The tooltip is limited to 127 characters.
-        string text = blocked.Length == 0 ? "Steam Route Tool" : "Steam Route Tool · " + blocked;
-        icon.Text = text.Length > 127 ? text[..127] : text;
+        icon.Text = blocked.Length == 0 ? "Steam Route Tool" : "Steam Route Tool · " + blocked;
     }
-
-    static MenuItem MenuItem(string header, Action action, bool bold = false)
-    {
-        MenuItem item = new MenuItem { Header = header, FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal };
-        item.Click += (sender, e) => action();
-        return item;
-    }
-
-    [DllImport("user32.dll")]
-    static extern bool SetForegroundWindow(IntPtr hWnd);
 }

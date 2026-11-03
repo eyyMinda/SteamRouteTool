@@ -4,8 +4,6 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
-    <!-- Only for the notification area icon (NotifyIcon); WPF has none. -->
-    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>SteamRouteTool</RootNamespace>
     <AssemblyName>SteamRouteTool</AssemblyName>
     <ApplicationIcon>wifi.ico</ApplicationIcon>
@@ -26,9 +24,6 @@
     <!-- WPF leaves these out of the implicit usings (System.IO.Path clashes with System.Windows.Shapes.Path, which isn't used here). -->
     <Using Include="System.IO" />
     <Using Include="System.Net.Http" />
-    <!-- Windows Forms is only used through a namespace alias, so its types don't clash with WPF's (Application, Button, ...). -->
-    <Using Remove="System.Windows.Forms" />
-    <Using Remove="System.Drawing" />
   </ItemGroup>
 
   <PropertyGroup>

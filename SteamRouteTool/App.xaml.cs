@@ -108,6 +108,8 @@ public partial class App : Application
 
         try
         {
+            // This process was just started by the user, so it may hand the foreground to the running instance.
+            AllowSetForegroundWindow(AnyProcess);
             using EventWaitHandle show = EventWaitHandle.OpenExisting(ShowEventName);
             show.Set();
         }
@@ -121,6 +123,11 @@ public partial class App : Application
         EventWaitHandle show = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
         ThreadPool.RegisterWaitForSingleObject(show, (state, timedOut) => Dispatcher.BeginInvoke(tray.Restore), null, Timeout.Infinite, executeOnlyOnce: false);
     }
+
+    const int AnyProcess = -1; // ASFW_ANY
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool AllowSetForegroundWindow(int processId);
 
     // Last resort: keep the app running and tell the user, instead of closing without a word.
     void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
