@@ -3,6 +3,20 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.6] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Minimize to tray** (Settings, off by default): minimizing hides the window from the taskbar and keeps an icon in the notification area.
+  - Click the icon to open the window again. Right-click it for **Open**, **Unblock all** and **Exit**.
+  - The icon's tooltip shows how many routes are blocked. The first time, a notification says the app is still running.
+  - The close button still exits the app.
+- **Start with Windows** (Settings): starts the app minimized (or in the tray) when you sign in, through a Task Scheduler task that runs it with administrator rights, so there's no prompt at startup.
+  - If the exe is moved, the task is updated the next time it's opened from the new place.
+- Starting the app while it's already running brings back the open window instead of starting a second copy.
+
 ## [2.0.5] - 2026-10-28
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

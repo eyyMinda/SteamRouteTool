@@ -16,7 +16,7 @@ public sealed class SettingsStoreTests : IDisposable
     [Fact]
     public void Save_ThenLoad_KeepsSettingsAndGameProfiles()
     {
-        AppSettings settings = new AppSettings { Theme = "Dark", PingOnStartup = false, GroupByRegion = false, UnblockOnExit = true, LastAppId = 570 };
+        AppSettings settings = new AppSettings { Theme = "Dark", PingOnStartup = false, GroupByRegion = false, UnblockOnExit = true, MinimizeToTray = true, LastAppId = 570 };
         settings.Profiles[730] = new GameProfile { BlockedRelays = ["155.133.248.36", "155.133.248.37"] };
         settings.Profiles[570] = new GameProfile();
 
@@ -27,6 +27,7 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.False(loaded.PingOnStartup);
         Assert.False(loaded.GroupByRegion);
         Assert.True(loaded.UnblockOnExit);
+        Assert.True(loaded.MinimizeToTray);
         Assert.Equal(570, loaded.LastAppId);
         Assert.Equal(["155.133.248.36", "155.133.248.37"], loaded.Profiles[730].BlockedRelays);
         Assert.Empty(loaded.Profiles[570].BlockedRelays);

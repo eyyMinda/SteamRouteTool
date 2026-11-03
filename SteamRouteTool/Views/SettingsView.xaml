@@ -29,6 +29,33 @@
 
       <Border Style="{StaticResource Card}">
         <DockPanel>
+          <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding StartWithWindows}" IsEnabled="{Binding CanChangeStartup}"
+                    VerticalAlignment="Center" AutomationProperties.Name="Start with Windows" />
+          <StackPanel>
+            <TextBlock Text="Start with Windows" FontWeight="SemiBold" />
+            <TextBlock Style="{StaticResource SecondaryText}">
+              Start Steam Route Tool minimized when you sign in (in the tray if Minimize to tray is on), without an administrator prompt.
+              It's a task named SteamRouteTool in Task Scheduler. If you move the exe, open it once from the new place to update the task.
+            </TextBlock>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
+          <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding MinimizeToTray}" VerticalAlignment="Center" AutomationProperties.Name="Minimize to tray" />
+          <StackPanel>
+            <TextBlock Text="Minimize to tray" FontWeight="SemiBold" />
+            <TextBlock Style="{StaticResource SecondaryText}">
+              Minimizing hides the window from the taskbar and keeps an icon in the notification area. Click the icon to open the window again,
+              or right-click it to unblock all routes or exit. The close button still exits the app.
+            </TextBlock>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <DockPanel>
           <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding UnblockOnExit}" VerticalAlignment="Center" AutomationProperties.Name="Unblock all routes when closing" />
           <StackPanel>
             <TextBlock Text="Unblock all routes when closing" FontWeight="SemiBold" />

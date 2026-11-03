@@ -78,6 +78,20 @@
 
       <Border Style="{StaticResource Card}">
         <StackPanel>
+          <TextBlock Text="Running in the background" Style="{StaticResource SectionTitle}" />
+          <TextBlock Style="{StaticResource BodyText}">
+            Turn on <Bold>Minimize to tray</Bold> in Settings to keep the app out of the taskbar: minimizing hides the window and leaves an icon in the notification area
+            (on Windows 10 it may be behind the ^ arrow; drag it onto the taskbar to keep it visible). Click the icon to open the window, or right-click it to unblock all routes or exit.
+          </TextBlock>
+          <TextBlock Style="{StaticResource BodyText}">
+            Turn on <Bold>Start with Windows</Bold> to start the app minimized when you sign in. This is useful together with <Bold>Unblock all routes when closing</Bold>,
+            which only blocks routes while the app is running. Starting the app again while it's already running brings back the open window.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
           <TextBlock Text="Troubleshooting" Style="{StaticResource SectionTitle}" />
           <TextBlock Style="{StaticResource BodyText}">
             <Bold>"Couldn't update the Windows Firewall rules":</Bold> the tool needs administrator rights (Windows asks when it starts) and the Windows Defender Firewall service must be running.
@@ -99,7 +113,8 @@
         <StackPanel>
           <TextBlock Text="Removing the tool" Style="{StaticResource SectionTitle}" />
           <TextBlock Style="{StaticResource BodyText}">
-            Click <Bold>Unblock all</Bold> first, so no firewall rules are left behind. Then delete the program and, if you like, its settings folder:
+            Click <Bold>Unblock all</Bold> first, so no firewall rules are left behind, and turn off <Bold>Start with Windows</Bold> in Settings.
+            Then delete the program and, if you like, its settings folder:
           </TextBlock>
           <TextBox Text="{Binding SettingsFolder, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="Consolas" />
         </StackPanel>
