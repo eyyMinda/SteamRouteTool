@@ -1,4 +1,5 @@
 using System.Windows;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Models;
 using SteamRouteTool.Services;
 using SteamRouteTool.ViewModels;
@@ -28,19 +29,20 @@ public sealed class TrayIcon : IDisposable
         icon.Click += Restore;
         icon.ContextMenuRequested += () => icon.ShowMenu(
         [
-            new NotifyIcon.MenuItem("Open Steam Route Tool", Restore, IsDefault: true),
+            new NotifyIcon.MenuItem(Loc.T("Tray.Open"), Restore, IsDefault: true),
             null,
-            new NotifyIcon.MenuItem("Game: " + routes.SelectedGame.Name, Submenu: GetGameItems()),
-            new NotifyIcon.MenuItem("Preset: " + (routes.SelectedPreset?.Name ?? "none"), Submenu: GetPresetItems()),
-            new NotifyIcon.MenuItem("Auto select · " + routes.AutoSelectLabel, () => routes.ApplyAutoSelectCommand.Execute(null),
+            new NotifyIcon.MenuItem(Loc.T("Tray.Game", routes.SelectedGame.Name), Submenu: GetGameItems()),
+            new NotifyIcon.MenuItem(Loc.T("Tray.Preset", routes.SelectedPreset?.Name ?? Loc.T("Tray.PresetNone")), Submenu: GetPresetItems()),
+            new NotifyIcon.MenuItem(Loc.T("Tray.AutoSelect", routes.AutoSelectLabel), () => routes.ApplyAutoSelectCommand.Execute(null),
                 IsEnabled: routes.ApplyAutoSelectCommand.CanExecute(null)),
-            new NotifyIcon.MenuItem("Unblock all", () => routes.UnblockAllCommand.Execute(null), IsEnabled: routes.UnblockAllCommand.CanExecute(null)),
+            new NotifyIcon.MenuItem(Loc.T("Tray.UnblockAll"), () => routes.UnblockAllCommand.Execute(null), IsEnabled: routes.UnblockAllCommand.CanExecute(null)),
             null,
-            new NotifyIcon.MenuItem("Exit", exit)
+            new NotifyIcon.MenuItem(Loc.T("Tray.Exit"), exit)
         ]);
         icon.BalloonClick += Restore;
 
         UpdateText();
+        Loc.Instance.Changed += UpdateText;
         routes.PropertyChanged += (sender, e) =>
         {
             if (e.PropertyName == nameof(RoutesViewModel.BlockedSummary)) { UpdateText(); }
@@ -68,8 +70,7 @@ public sealed class TrayIcon : IDisposable
         {
             settings.TrayHintShown = true;
             store.Save(settings);
-            icon.ShowBalloon("Steam Route Tool is still running",
-                "It keeps your routes as they are. Click the icon to open it, or right-click it to exit.");
+            icon.ShowBalloon(Loc.T("Tray.HintTitle"), Loc.T("Tray.HintText"));
         }
     }
 
@@ -104,7 +105,7 @@ public sealed class TrayIcon : IDisposable
     // The selected game's presets, the one matching what's blocked ticked. Choosing one applies it.
     List<NotifyIcon.MenuItem?> GetPresetItems()
     {
-        if (routes.Presets.Count == 0) { return [new NotifyIcon.MenuItem("No presets yet", IsEnabled: false)]; }
+        if (routes.Presets.Count == 0) { return [new NotifyIcon.MenuItem(Loc.T("Tray.NoPresets"), IsEnabled: false)]; }
         return routes.Presets
             .Select(preset => (NotifyIcon.MenuItem?)new NotifyIcon.MenuItem(preset.Name, () => _ = routes.ApplyPresetAsync(preset),
                 IsEnabled: routes.CanChangeRules, IsChecked: preset == routes.SelectedPreset))

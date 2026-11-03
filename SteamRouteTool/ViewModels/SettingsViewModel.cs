@@ -1,6 +1,7 @@
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Services;
 
 namespace SteamRouteTool.ViewModels;
@@ -18,6 +19,19 @@ public sealed partial class SettingsViewModel : ObservableObject
         pingOnStartup = settings.PingOnStartup;
         unblockOnExit = settings.UnblockOnExit;
         minimizeToTray = settings.MinimizeToTray;
+        language = Loc.Languages.FirstOrDefault(info => info.Code == settings.Language) ?? Loc.Languages[0];
+    }
+
+    public IReadOnlyList<LanguageInfo> Languages => Loc.Languages;
+
+    [ObservableProperty]
+    LanguageInfo language;
+
+    partial void OnLanguageChanged(LanguageInfo value)
+    {
+        Loc.Instance.SetLanguage(value.Code);
+        settings.Language = value.Code;
+        store.Save(settings);
     }
 
     [ObservableProperty]
@@ -91,7 +105,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             loadingStartup = true;
             StartWithWindows = !value;
             loadingStartup = false;
-            MessageBox.Show("Couldn't " + (value ? "turn on" : "turn off") + " starting with Windows:" + Environment.NewLine + ex.Message,
+            MessageBox.Show(Loc.T(value ? "Settings.StartupError.On" : "Settings.StartupError.Off", ex.Message),
                 "Steam Route Tool", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
@@ -102,7 +116,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     // ----- Appearance and other settings -----
 
-    public IReadOnlyList<string> ThemeOptions { get; } = ["System", "Light", "Dark"];
+    public IReadOnlyList<LocalizedOption> ThemeOptions { get; } =
+        [new LocalizedOption("System", "Theme.System"), new LocalizedOption("Light", "Theme.Light"), new LocalizedOption("Dark", "Theme.Dark")];
     public string SettingsFolder => SettingsStore.DefaultDirectory;
 
     [ObservableProperty]

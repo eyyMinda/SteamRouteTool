@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Models;
 using SteamRouteTool.Services;
 
@@ -15,10 +16,10 @@ namespace SteamRouteTool.ViewModels;
 /// </summary>
 public sealed partial class RoutesViewModel : ObservableObject
 {
-    public const string AllRegions = "All regions";
-    public const string StatusAll = "All routes";
+    public const string AllRegions = "All";
+    public const string StatusAll = "All";
     public const string StatusBlocked = "Blocked";
-    public const string StatusNotBlocked = "Not blocked";
+    public const string StatusNotBlocked = "NotBlocked";
 
     readonly SdrConfigClient configClient;
     readonly FirewallService firewall;
@@ -59,13 +60,41 @@ public sealed partial class RoutesViewModel : ObservableObject
         // shaping misorders grouped rows. Blocked-state changes refresh the view explicitly for the status filter.
         RoutesView = view;
         ApplyGrouping();
+        Loc.Instance.Changed += OnLanguageChanged;
+    }
+
+    // Texts built here are refreshed; messages already shown are dismissed rather than left in the old language.
+    void OnLanguageChanged()
+    {
+        DismissMessages();
+        PresetMessage = null;
+        foreach (RouteViewModel route in Routes) { route.RefreshTexts(); }
+        foreach (PresetViewModel preset in Presets) { preset.Refresh(); }
+        // Group headers are the translated region names.
+        ApplyGrouping();
+        RefreshView();
+        OnPropertyChanged(nameof(AutoSelectLabel));
+        OnPropertyChanged(nameof(AutoRouteCountText));
+        OnPropertyChanged(nameof(PresetPlaceholder));
+        OnPropertyChanged(nameof(SavePresetLabel));
+        OnPropertyChanged(nameof(PresetsTitle));
     }
 
     public ObservableCollection<RouteViewModel> Routes { get; } = new ObservableCollection<RouteViewModel>();
     public ICollectionView RoutesView { get; }
     public IReadOnlyList<Game> Games => Game.Supported;
-    public ObservableCollection<string> RegionOptions { get; } = new ObservableCollection<string> { AllRegions };
-    public IReadOnlyList<string> StatusOptions { get; } = [StatusAll, StatusBlocked, StatusNotBlocked];
+    /// <summary>The region filter's choices; <see cref="LocalizedOption.Key"/> is the internal region name.</summary>
+    public ObservableCollection<LocalizedOption> RegionOptions { get; } = new ObservableCollection<LocalizedOption> { AllRegionsOption };
+    public IReadOnlyList<LocalizedOption> StatusOptions { get; } =
+    [
+        new LocalizedOption(StatusAll, "Routes.StatusAll"),
+        new LocalizedOption(StatusBlocked, "Routes.StatusBlocked"),
+        new LocalizedOption(StatusNotBlocked, "Routes.StatusNotBlocked"),
+    ];
+
+    static readonly LocalizedOption AllRegionsOption = new LocalizedOption(AllRegions, "Routes.AllRegions");
+    static readonly Dictionary<string, LocalizedOption> RegionOptionsByName = RegionClassifier.All
+        .ToDictionary(region => region, region => new LocalizedOption(region, "Region." + region.Replace(" ", "")));
 
     [ObservableProperty]
     Game selectedGame;
@@ -121,12 +150,12 @@ public sealed partial class RoutesViewModel : ObservableObject
         UpdateSelectedPreset();
     }
 
-    public string Summary => $"{BlockedText} · {RoutesView.Cast<object>().Count()} shown";
+    public string Summary => Loc.T("Routes.Summary", BlockedCount, Routes.Count, RoutesView.Cast<object>().Count());
 
     /// <summary>E.g. "40 of 45 routes blocked", or empty before the routes have loaded. Shown in the tray icon's tooltip.</summary>
-    public string BlockedSummary => Routes.Count == 0 ? "" : BlockedText;
+    public string BlockedSummary => Routes.Count == 0 ? "" : Loc.T("Routes.BlockedSummary", BlockedCount, Routes.Count);
 
-    string BlockedText => $"{Routes.Count(route => route.IsBlocked != false)} of {Routes.Count} routes blocked";
+    int BlockedCount => Routes.Count(route => route.IsBlocked != false);
 
     // ----- Loading -----
 
@@ -151,6 +180,7 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     partial void OnSelectedGameChanged(Game value)
     {
+        OnPropertyChanged(nameof(PresetsTitle));
         settings.LastAppId = value.AppId;
         settingsStore.Save(settings);
         if (initialized) { _ = LoadGameAsync(value, fromFirewall: false); }
@@ -184,7 +214,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         catch (Exception ex)
         {
             if (load != loadVersion) { return; }
-            ErrorMessage = $"Couldn't load the route list for {game.Name}: {ex.Message}";
+            ErrorMessage = Loc.T("Routes.LoadFailed", game.Name, ex.Message);
             IsLoading = false;
             return;
         }
@@ -197,7 +227,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             HashSet<string> addresses = profile.BlockedRelays.ToHashSet();
             blocked = loaded.SelectMany(pop => pop.Relays).Where(relay => addresses.Contains(relay.Address)).ToHashSet();
             int blockedRoutes = CountBlockedRoutes(loaded, blocked);
-            appliedMessage = $"Applied your saved {game.Name} profile to the firewall ({blockedRoutes} {(blockedRoutes == 1 ? "route" : "routes")} blocked).";
+            appliedMessage = Loc.Plural("Routes.ProfileApplied", blockedRoutes, game.Name);
         }
         else
         {
@@ -243,9 +273,9 @@ public sealed partial class RoutesViewModel : ObservableObject
 
         string selected = SelectedRegion;
         RegionOptions.Clear();
-        RegionOptions.Add(AllRegions);
-        foreach (string region in RegionClassifier.All.Where(region => pops.Any(pop => pop.Region == region))) { RegionOptions.Add(region); }
-        SelectedRegion = RegionOptions.Contains(selected) ? selected : AllRegions;
+        RegionOptions.Add(AllRegionsOption);
+        foreach (string region in RegionClassifier.All.Where(region => pops.Any(pop => pop.Region == region))) { RegionOptions.Add(RegionOptionsByName[region]); }
+        SelectedRegion = RegionOptions.Any(option => option.Key == selected) ? selected : AllRegions;
         LoadPresets();
         NotifySummaryChanged();
     }
@@ -271,7 +301,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     void ApplyGrouping()
     {
         RoutesView.GroupDescriptions.Clear();
-        if (GroupByRegion) { RoutesView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(RouteViewModel.Region))); }
+        if (GroupByRegion) { RoutesView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(RouteViewModel.RegionName))); }
     }
 
     void RefreshView()
@@ -289,7 +319,8 @@ public sealed partial class RoutesViewModel : ObservableObject
         return search.Length == 0
             || route.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
             || route.Code.Contains(search, StringComparison.OrdinalIgnoreCase)
-            || route.Region.Contains(search, StringComparison.OrdinalIgnoreCase);
+            || route.Region.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || route.RegionName.Contains(search, StringComparison.OrdinalIgnoreCase);
     }
 
     [RelayCommand]
@@ -351,14 +382,14 @@ public sealed partial class RoutesViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanChangeRules))]
     async Task BlockAllAsync()
     {
-        if (!Confirm("Block every route? You won't be able to connect to any Valve server until you unblock some.")) { return; }
-        await ApplyBlockedAsync(pops.SelectMany(pop => pop.Relays).ToHashSet(), "Blocked every route.");
+        if (!Confirm(Loc.T("Routes.ConfirmBlockAll"))) { return; }
+        await ApplyBlockedAsync(pops.SelectMany(pop => pop.Relays).ToHashSet(), Loc.T("Routes.BlockedAll"));
     }
 
     [RelayCommand(CanExecute = nameof(CanChangeRules))]
     Task UnblockAllAsync()
     {
-        return ApplyBlockedAsync(new HashSet<Relay>(), "Unblocked every route and removed all of the tool's firewall rules.");
+        return ApplyBlockedAsync(new HashSet<Relay>(), Loc.T("Routes.UnblockedAll"));
     }
 
     /// <summary>Allows only the routes the current filters show, e.g. one region: every other route is blocked.</summary>
@@ -368,13 +399,13 @@ public sealed partial class RoutesViewModel : ObservableObject
         HashSet<RouteViewModel> shown = RoutesView.Cast<RouteViewModel>().ToHashSet();
         if (shown.Count == 0 || shown.Count == Routes.Count)
         {
-            StatusMessage = "Use the search or filters to show the routes you want to keep, then block all the others.";
+            StatusMessage = Loc.T("Routes.ShowRoutesFirst");
             return;
         }
         int hidden = Routes.Count - shown.Count;
-        if (!Confirm($"Block the {hidden} routes that aren't shown, and unblock the {shown.Count} shown routes?")) { return; }
+        if (!Confirm(Loc.T("Routes.ConfirmBlockAllExceptShown", hidden, shown.Count))) { return; }
         HashSet<Relay> blocked = Routes.Where(route => !shown.Contains(route)).SelectMany(route => route.Pop.Relays).ToHashSet();
-        await ApplyBlockedAsync(blocked, $"Only the {shown.Count} shown routes are allowed; {hidden} routes are blocked.");
+        await ApplyBlockedAsync(blocked, Loc.T("Routes.BlockedAllExceptShown", shown.Count, hidden));
     }
 
     async Task<bool> ApplyBlockedAsync(HashSet<Relay> newBlocked, string message)
@@ -415,8 +446,7 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     void ShowFirewallError(Exception ex)
     {
-        ErrorMessage = "Couldn't update the Windows Firewall rules: " + ex.Message +
-            " Make sure the Windows Defender Firewall service is running and Steam Route Tool runs as administrator.";
+        ErrorMessage = Loc.T("Routes.FirewallError", ex.Message);
     }
 
     void SaveProfile()
@@ -471,7 +501,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     async Task UndoAsync()
     {
         if (blockedBeforeUndo == null) { return; }
-        await ApplyBlockedAsync(blockedBeforeUndo, "Restored the routes that were blocked before.");
+        await ApplyBlockedAsync(blockedBeforeUndo, Loc.T("Routes.Restored"));
     }
 
     // ----- Presets -----
@@ -482,7 +512,10 @@ public sealed partial class RoutesViewModel : ObservableObject
     public bool HasPresets => Presets.Count > 0;
 
     /// <summary>Shown in the preset list when no preset matches what's blocked.</summary>
-    public string PresetPlaceholder => HasPresets ? "No preset" : "No presets yet";
+    public string PresetPlaceholder => Loc.T(HasPresets ? "Presets.NoPreset" : "Presets.NoPresetsYet");
+
+    /// <summary>E.g. "Counter-Strike 2 presets".</summary>
+    public string PresetsTitle => Loc.T("Presets.ListTitle", SelectedGame.Name);
 
     /// <summary>The preset that matches what's blocked now, or null. Picking one in the list applies it.</summary>
     [ObservableProperty]
@@ -505,7 +538,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     string? presetMessage;
 
     /// <summary>"Update" when the typed name is an existing preset (it's then overwritten), otherwise "Save".</summary>
-    public string SavePresetLabel => FindPreset(PresetLogic.CleanName(NewPresetName)) != null ? "Update" : "Save";
+    public string SavePresetLabel => Loc.T(FindPreset(PresetLogic.CleanName(NewPresetName)) != null ? "Presets.Update" : "Presets.Save");
 
     List<GamePreset> GamePresets
     {
@@ -561,7 +594,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         HashSet<Relay> before = blockedRelays.ToHashSet();
         HashSet<Relay> blocked = PresetLogic.Resolve(preset.Model, pops);
         int routes = CountBlockedRoutes(pops, blocked);
-        string message = $"Applied the preset \"{preset.Name}\": {routes} {(routes == 1 ? "route" : "routes")} blocked.";
+        string message = Loc.Plural("Presets.Applied", routes, preset.Name);
         if (await ApplyBlockedAsync(blocked, message)) { OfferUndo(before); }
     }
 
@@ -578,7 +611,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             existing.Model.BlockedRoutes = captured.BlockedRoutes;
             existing.Model.BlockedRelays = captured.BlockedRelays;
             existing.Refresh();
-            PresetMessage = $"Updated \"{existing.Name}\" with the routes blocked now.";
+            PresetMessage = Loc.T("Presets.Updated", existing.Name);
         }
         else
         {
@@ -586,7 +619,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             Presets.Add(new PresetViewModel(this, captured));
             OnPropertyChanged(nameof(HasPresets));
             OnPropertyChanged(nameof(PresetPlaceholder));
-            PresetMessage = $"Saved \"{name}\".";
+            PresetMessage = Loc.T("Presets.Saved", name);
         }
         settingsStore.Save(settings);
         NewPresetName = "";
@@ -601,33 +634,33 @@ public sealed partial class RoutesViewModel : ObservableObject
         string? name = PresetLogic.CleanName(newName);
         if (name == null)
         {
-            PresetMessage = "A preset needs a name.";
+            PresetMessage = Loc.T("Presets.NeedsName");
             return false;
         }
         PresetViewModel? other = FindPreset(name);
         if (other != null && other != preset)
         {
-            PresetMessage = $"There's already a preset named \"{other.Name}\".";
+            PresetMessage = Loc.T("Presets.NameTaken", other.Name);
             return false;
         }
         if (name == preset.Model.Name) { return true; }
         preset.Model.Name = name;
         settingsStore.Save(settings);
-        PresetMessage = $"Renamed to \"{name}\".";
+        PresetMessage = Loc.T("Presets.Renamed", name);
         OnPropertyChanged(nameof(SavePresetLabel));
         return true;
     }
 
     public void DeletePreset(PresetViewModel preset)
     {
-        if (!Confirm($"Delete the preset \"{preset.Name}\"? The routes blocked now stay as they are.")) { return; }
+        if (!Confirm(Loc.T("Presets.ConfirmDelete", preset.Name))) { return; }
         GamePresets.Remove(preset.Model);
         Presets.Remove(preset);
         settingsStore.Save(settings);
         OnPropertyChanged(nameof(HasPresets));
         OnPropertyChanged(nameof(PresetPlaceholder));
         OnPropertyChanged(nameof(SavePresetLabel));
-        PresetMessage = $"Deleted \"{preset.Name}\".";
+        PresetMessage = Loc.T("Presets.Deleted", preset.Name);
         UpdateSelectedPreset();
     }
 
@@ -640,10 +673,13 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     /// <summary>How many of the fastest routes Auto select keeps.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoSelectPreview), nameof(AutoSelectLabel))]
+    [NotifyPropertyChangedFor(nameof(AutoSelectPreview), nameof(AutoSelectLabel), nameof(AutoRouteCountText))]
     int autoRouteCount;
 
-    public string AutoSelectLabel => $"{AutoRouteCount} fastest";
+    public string AutoSelectLabel => Loc.T("AutoSelect.Label", AutoRouteCount);
+
+    /// <summary>E.g. "5 routes", next to the slider.</summary>
+    public string AutoRouteCountText => Loc.Plural("AutoSelect.RouteCount", AutoRouteCount);
 
     partial void OnAutoRouteCountChanged(int value)
     {
@@ -669,8 +705,8 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     string DescribeRoutes(IReadOnlyList<Pop> routes, int shown)
     {
-        string names = string.Join(", ", routes.Take(shown).Select(pop => $"{pop.Description} ({GetKnownPing(pop)} ms)"));
-        return routes.Count > shown ? $"{names} and {routes.Count - shown} more" : names;
+        string names = string.Join(", ", routes.Take(shown).Select(pop => Loc.T("AutoSelect.RouteWithPing", pop.Description, GetKnownPing(pop))));
+        return routes.Count > shown ? Loc.T("AutoSelect.AndMore", names, routes.Count - shown) : names;
     }
 
     /// <summary>What Auto select would do, e.g. "Keeps Warsaw (Poland) (13 ms), ... Blocks the other 40 routes."</summary>
@@ -680,12 +716,12 @@ public sealed partial class RoutesViewModel : ObservableObject
         {
             if (pops.Count == 0) { return ""; }
             IReadOnlyList<Pop> kept = GetAutoSelectedRoutes();
-            if (kept.Count == 0) { return "No pings are known yet. Click Ping all first."; }
+            if (kept.Count == 0) { return Loc.T("AutoSelect.NoPings"); }
 
-            string preview = $"Keeps {DescribeRoutes(kept, 10)}. Blocks the other {pops.Count - kept.Count} routes.";
+            string preview = Loc.T("AutoSelect.Preview", DescribeRoutes(kept, 10), pops.Count - kept.Count);
             int unknown = pops.Count(pop => GetKnownPing(pop) == null);
-            if (unknown > 0) { preview += $" {unknown} {(unknown == 1 ? "route has" : "routes have")} no known ping."; }
-            if (IsPinging) { preview += " Pings are still being measured."; }
+            if (unknown > 0) { preview += Loc.Plural("AutoSelect.Unknown", unknown); }
+            if (IsPinging) { preview += Loc.T("AutoSelect.StillPinging"); }
             return preview;
         }
     }
@@ -698,14 +734,14 @@ public sealed partial class RoutesViewModel : ObservableObject
         IReadOnlyList<Pop> kept = GetAutoSelectedRoutes();
         if (kept.Count == 0)
         {
-            StatusMessage = "Auto select needs at least one known ping. Click Ping all first.";
+            StatusMessage = Loc.T("AutoSelect.NeedsPing");
             return;
         }
 
         HashSet<Pop> keptSet = kept.ToHashSet();
         HashSet<Relay> blocked = pops.Where(pop => !keptSet.Contains(pop)).SelectMany(pop => pop.Relays).ToHashSet();
         HashSet<Relay> before = blockedRelays.ToHashSet();
-        string message = $"Auto select kept the {kept.Count} fastest {(kept.Count == 1 ? "route" : "routes")}: {DescribeRoutes(kept, 5)}. The other {pops.Count - kept.Count} are blocked.";
+        string message = Loc.Plural("AutoSelect.Kept", kept.Count, DescribeRoutes(kept, 5), pops.Count - kept.Count);
         if (await ApplyBlockedAsync(blocked, message)) { OfferUndo(before); }
     }
 

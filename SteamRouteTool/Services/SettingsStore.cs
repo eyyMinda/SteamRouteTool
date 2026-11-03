@@ -4,6 +4,8 @@ namespace SteamRouteTool.Services;
 
 public sealed class AppSettings
 {
+    /// <summary>A language code from Localization.Loc.Languages, e.g. "en" or "de".</summary>
+    public string Language { get; set; } = Localization.Loc.DefaultLanguage;
     /// <summary>"System", "Light" or "Dark".</summary>
     public string Theme { get; set; } = "System";
     public bool PingOnStartup { get; set; } = true;

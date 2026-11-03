@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Services;
 using SteamRouteTool.ViewModels;
 
@@ -43,6 +44,7 @@ public partial class App : Application
 
         SettingsStore settingsStore = new SettingsStore(Path.Combine(SettingsStore.DefaultDirectory, "settings.json"));
         AppSettings settings = settingsStore.Load();
+        Loc.Instance.SetLanguage(settings.Language);
         AppTheme.Apply(settings.Theme);
         AppTheme.FollowSystemChanges();
 
@@ -133,8 +135,7 @@ public partial class App : Application
     void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         e.Handled = true;
-        MessageBox.Show("Something went wrong:" + Environment.NewLine + e.Exception.Message + Environment.NewLine + Environment.NewLine +
-            "If this keeps happening, please report it at " + AppInfo.IssuesUrl,
+        MessageBox.Show(Loc.T("App.Error", e.Exception.Message, AppInfo.IssuesUrl),
             "Steam Route Tool", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 }

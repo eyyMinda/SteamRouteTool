@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Models;
 using SteamRouteTool.Services;
 
@@ -24,7 +25,10 @@ public sealed partial class RouteViewModel : ObservableObject
     public IReadOnlyList<RelayViewModel> Relays { get; }
     public string Name => Pop.Description;
     public string Code => Pop.Code;
+    /// <summary>The internal (English) region name, used for filtering.</summary>
     public string Region => Pop.Region;
+    /// <summary>The region in the app's language, shown and grouped by.</summary>
+    public string RegionName => RegionClassifier.GetDisplayName(Pop.Region);
     public int RegionOrder { get; }
     public int RelayCount => Pop.Relays.Count;
     public bool HasMultipleRelays => Pop.Relays.Count > 1;
@@ -52,12 +56,20 @@ public sealed partial class RouteViewModel : ObservableObject
     public int BlockedSortValue => IsBlocked switch { true => 0, null => 1, false => 2 };
 
     /// <summary>E.g. " · 2 of 4 relays blocked" for a partly blocked route, empty otherwise.</summary>
-    public string BlockedDetail => IsBlocked == null ? $" · {Pop.Relays.Count(owner.IsRelayBlocked)} of {RelayCount} relays blocked" : "";
+    public string BlockedDetail => IsBlocked == null ? Loc.T("Routes.PartlyBlocked", Pop.Relays.Count(owner.IsRelayBlocked), RelayCount) : "";
 
     [RelayCommand]
     void PingAgain()
     {
         owner.RequestPingRoute(this);
+    }
+
+    /// <summary>Refreshes the texts after the language changed.</summary>
+    public void RefreshTexts()
+    {
+        OnPropertyChanged(nameof(RegionName));
+        foreach (RelayViewModel relay in Relays) { relay.RefreshTexts(); }
+        Refresh();
     }
 
     public void Refresh()

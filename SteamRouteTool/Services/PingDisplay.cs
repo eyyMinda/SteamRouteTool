@@ -1,3 +1,4 @@
+using SteamRouteTool.Localization;
 using SteamRouteTool.Models;
 
 namespace SteamRouteTool.Services;
@@ -32,19 +33,19 @@ public static class PingDisplay
         IReadOnlySet<string> pending, IReadOnlyDictionary<string, int> cached)
     {
         List<Relay> pingable = relays.Where(relay => !blocked.Contains(relay)).ToList();
-        if (pingable.Count == 0) { return new PingText("blocked", PingLevel.Blocked, int.MaxValue - 1); }
+        if (pingable.Count == 0) { return new PingText(Loc.T("Ping.Blocked"), PingLevel.Blocked, int.MaxValue - 1); }
 
         int? best = pingable.Where(relay => results.ContainsKey(relay.Address)).Select(relay => results[relay.Address]).Min();
-        if (best is int ms) { return new PingText(ms + " ms", ms <= GoodMs ? PingLevel.Good : ms <= FairMs ? PingLevel.Fair : PingLevel.Poor, ms); }
+        if (best is int ms) { return new PingText(Loc.T("Ping.Ms", ms), ms <= GoodMs ? PingLevel.Good : ms <= FairMs ? PingLevel.Fair : PingLevel.Poor, ms); }
 
         int? stale = pingable.Select(relay => cached.TryGetValue(relay.Address, out int value) ? value : (int?)null).Min();
         bool isPending = pingable.Any(relay => pending.Contains(relay.Address));
         bool wasPinged = pingable.Any(relay => results.ContainsKey(relay.Address));
         if (isPending || !wasPinged)
         {
-            if (stale is int staleMs) { return new PingText(staleMs + " ms", PingLevel.Stale, staleMs); }
+            if (stale is int staleMs) { return new PingText(Loc.T("Ping.Ms", staleMs), PingLevel.Stale, staleMs); }
             return isPending ? new PingText("…", PingLevel.Stale, int.MaxValue - 2) : new PingText("", PingLevel.None, int.MaxValue);
         }
-        return new PingText("no reply", PingLevel.Failed, int.MaxValue - 3);
+        return new PingText(Loc.T("Ping.NoReply"), PingLevel.Failed, int.MaxValue - 3);
     }
 }

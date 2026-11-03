@@ -4,7 +4,7 @@ Choose which Valve relay locations your games can connect to.
 
 Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
 
-Current version: **2.0.8**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+Current version: **2.0.9**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ![Steam Route Tool: the Routes page, with Amsterdam expanded to show its relays](docs/screenshot.png)
 
@@ -29,6 +29,7 @@ Get `SteamRouteTool-<version>-win-x64.exe` from [Releases](../../releases). It's
 - **Block only while the app is open** (optional): remove all rules when the app closes and re-apply your selection on the next start.
 - **Runs in the background** (optional): minimize to the notification area instead of the taskbar, and start with Windows (minimized, without an administrator prompt).
 - **Light and dark theme** (Windows 11 style, follows your Windows setting).
+- **9 languages:** English, Deutsch, Español, Français, Polski, Português (Brasil), Русский, Türkçe and 简体中文, switchable in Settings without restarting.
 - **Built-in help, update check and links** to the changelog and releases.
 
 The app's **How to use** page explains everything step by step.
@@ -37,6 +38,7 @@ The app's **How to use** page explains everything step by step.
 
 ![Steam Route Tool: the Settings page](docs/settings.png)
 
+- **Language:** English by default; switches the whole app instantly.
 - **Theme:** System, Light or Dark.
 - **Start with Windows:** starts the app minimized when you sign in, through a Task Scheduler task (named `SteamRouteTool`) that runs it with administrator rights, so there's no prompt.
 - **Minimize to tray:** minimizing hides the window from the taskbar and keeps an icon in the notification area. Click it to open the window; right-click it to switch games and presets, run Auto select, unblock all routes or exit. The close button still exits.
@@ -66,6 +68,12 @@ dotnet test
 The output is in `SteamRouteTool/bin/Release/net10.0-windows/`. To open the solution (`SteamRouteTool.slnx`) in Visual Studio, use Visual Studio 2026 or later.
 
 Tests use xUnit v3 on Microsoft.Testing.Platform (enabled in `global.json`) and cover config parsing, regions, pings, settings and firewall rule handling without touching the real firewall. GitHub Actions builds and tests every pull request and push to `main` and `release/**`.
+
+## Translations
+
+All texts are in [`SteamRouteTool/Strings`](SteamRouteTool/Strings), one JSON file per language (`en.json` is the reference). `{0}`, `{1}` are filled in by the app, and `**double asterisks**` mark bold words on the How to use page. Keys ending in `.One` / `.Other` are the singular and plural forms. A missing text falls back to English, and the tests check that every language has every key and keeps the placeholders.
+
+To fix a translation, edit its file and open a pull request. To add a language, copy `en.json` to `<code>.json` (e.g. `it.json`), translate it and add the language to `Loc.Languages` in [`Localization/Loc.cs`](SteamRouteTool/Localization/Loc.cs).
 
 ## Releases
 

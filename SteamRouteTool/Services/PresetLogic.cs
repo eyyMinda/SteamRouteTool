@@ -1,3 +1,4 @@
+using SteamRouteTool.Localization;
 using SteamRouteTool.Models;
 
 namespace SteamRouteTool.Services;
@@ -56,10 +57,9 @@ public static class PresetLogic
     {
         int routes = preset.BlockedRoutes.Count;
         int relays = preset.BlockedRelays.Count;
-        if (routes == 0 && relays == 0) { return "Nothing blocked"; }
-        string routeText = $"{routes} {(routes == 1 ? "route" : "routes")}";
-        string relayText = $"{relays} {(relays == 1 ? "relay" : "relays")}";
-        if (relays == 0) { return routeText + " blocked"; }
-        return (routes == 0 ? relayText : routeText + " and " + relayText) + " blocked";
+        if (routes == 0 && relays == 0) { return Loc.T("Presets.NothingBlocked"); }
+        if (relays == 0) { return Loc.Plural("Presets.RoutesBlocked", routes); }
+        if (routes == 0) { return Loc.Plural("Presets.RelaysBlocked", relays); }
+        return Loc.T("Presets.RoutesAndRelaysBlocked", routes, relays);
     }
 }

@@ -3,6 +3,17 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.9] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Languages:** the whole app (pages, help, messages, tray menu and notifications) is available in English, Deutsch, Español, Français, Polski, Português (Brasil), Русский, Türkçe and 简体中文.
+  - Choose it in **Settings → Language**; it switches instantly, without restarting. English is the default.
+  - Route location names (e.g. "Amsterdam (Netherlands)") come from Steam and stay in English.
+  - Corrections to the translations are welcome: the texts are in `SteamRouteTool/Strings/<language>.json`.
+
 ## [2.0.8] - 2026-11-03
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
