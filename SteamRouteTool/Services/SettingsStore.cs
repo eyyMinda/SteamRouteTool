@@ -9,6 +9,8 @@ public sealed class AppSettings
     /// <summary>"System", "Light" or "Dark".</summary>
     public string Theme { get; set; } = "System";
     public bool PingOnStartup { get; set; } = true;
+    /// <summary>Look for a new version on GitHub at startup and once a day (installing always takes a click).</summary>
+    public bool CheckForUpdates { get; set; } = true;
     public bool GroupByRegion { get; set; } = true;
     /// <summary>Remove all firewall rules when the app closes, and re-apply the game's profile when it starts.</summary>
     public bool UnblockOnExit { get; set; }

@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using SteamRouteTool.Localization;
 using SteamRouteTool.Services;
 
@@ -37,10 +38,11 @@ public sealed class HowToViewModel
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public MainViewModel(RoutesViewModel routes, SettingsViewModel settings, AboutViewModel about)
+    public MainViewModel(RoutesViewModel routes, SettingsViewModel settings, AboutViewModel about, UpdatesViewModel updates)
     {
         Routes = routes;
         About = about;
+        Updates = updates;
         Pages =
         [
             new NavigationItem("Nav.Routes", "", routes),
@@ -59,6 +61,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public RoutesViewModel Routes { get; }
     public AboutViewModel About { get; }
+    /// <summary>For the "Update to …" button in the sidebar.</summary>
+    public UpdatesViewModel Updates { get; }
     public IReadOnlyList<NavigationItem> Pages { get; }
     public string VersionText => Loc.T("Nav.Version", AppInfo.VersionText);
 
@@ -69,4 +73,11 @@ public sealed partial class MainViewModel : ObservableObject
     {
         foreach (NavigationItem page in Pages) { page.IsSelected = page == value; }
     }
+
+    /// <summary>Opens Settings, where updates are installed.</summary>
+    [RelayCommand]
+    void GoToSettings() => SelectedPage = Pages[2];
+
+    [RelayCommand]
+    void OpenLink(string url) => Shell.Open(url);
 }

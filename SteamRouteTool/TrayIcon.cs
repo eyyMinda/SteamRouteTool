@@ -74,6 +74,12 @@ public sealed class TrayIcon : IDisposable
         }
     }
 
+    /// <summary>A notification from the tray icon, e.g. about a new version; clicking it opens the window.</summary>
+    public void ShowNotification(string title, string text)
+    {
+        icon.ShowBalloon(title, text);
+    }
+
     /// <summary>Shows the window again, as it was before it was minimized.</summary>
     public void Restore()
     {

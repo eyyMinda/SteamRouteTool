@@ -1,6 +1,8 @@
 <Window x:Class="SteamRouteTool.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:SteamRouteTool.Localization"
+        xmlns:services="clr-namespace:SteamRouteTool.Services"
         Title="Steam Route Tool"
         Icon="wifi.ico"
         Width="1180" Height="720" MinWidth="860" MinHeight="520"
@@ -17,7 +19,36 @@
         <Image Source="wifi.ico" Width="22" Height="22" />
         <TextBlock Text="Steam Route Tool" FontSize="15" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
       </StackPanel>
-      <TextBlock DockPanel.Dock="Bottom" Text="{Binding VersionText}" Style="{StaticResource SecondaryText}" Margin="12,8" />
+      <!-- Bottom: a new version (when found), support and the version with a link to the author's GitHub. -->
+      <StackPanel DockPanel.Dock="Bottom" Margin="12,8">
+        <Button Command="{Binding GoToSettingsCommand}" Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Left" Margin="0,0,0,10" AutomationProperties.Name="Update available"
+                Visibility="{Binding Updates.IsUpdateAvailable, Converter={StaticResource VisibleWhen}}">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
+            <TextBlock Text="{Binding Updates.UpdateButtonText}" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.BuyMeACoffeeUrl}" Style="{StaticResource CoffeeButton}"
+                HorizontalAlignment="Stretch" Margin="0,0,0,10" ToolTip="buymeacoffee.com/eyyminda" AutomationProperties.Name="Buy me a coffee">
+          <StackPanel Orientation="Horizontal">
+            <!-- A coffee cup with steam. -->
+            <Path Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center" StrokeThickness="1.6"
+                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                  Data="M3,8 H15 V13 A5,5 0 0 1 10,18 H8 A5,5 0 0 1 3,13 Z M15,9.5 H16.5 A2.5,2.5 0 0 1 16.5,14.5 H14.5 M7,2.5 V5.5 M11,2.5 V5.5" />
+            <TextBlock Text="{l:Tr Sidebar.Coffee}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.AuthorUrl}"
+                  Style="{StaticResource IconLinkButton}" ToolTip="{l:Tr Sidebar.GitHub}" AutomationProperties.Name="eyyMinda on GitHub">
+            <!-- The GitHub mark (Octicons, MIT). -->
+            <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource TextFillColorSecondaryBrush}"
+                  Data="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+          </Button>
+          <TextBlock Text="{Binding VersionText}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
+        </DockPanel>
+      </StackPanel>
       <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}" BorderThickness="0" Background="Transparent"
                AutomationProperties.Name="Pages">
         <ListBox.ItemTemplate>

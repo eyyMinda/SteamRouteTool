@@ -126,6 +126,47 @@
         </StackPanel>
       </Border>
 
+      <!-- Updates -->
+      <TextBlock Text="{l:Tr Updates.Title}" Style="{StaticResource SettingsHeading}" />
+      <Border Style="{StaticResource SettingsGroup}" DataContext="{Binding Updates}">
+        <StackPanel>
+          <Grid Style="{StaticResource SettingsRow}" Background="Transparent" ToolTip="{l:Tr Updates.InstallDetails}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE895;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{Binding CurrentVersionText}" />
+              <TextBlock Text="{Binding Status}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+              <Button Content="{l:Tr Updates.Install}" Command="{Binding InstallCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0"
+                      Visibility="{Binding CanInstall, Converter={StaticResource VisibleWhen}}" AutomationProperties.Name="Update now" />
+              <Button Content="{l:Tr Updates.ReleasePage}" Command="{Binding OpenReleasePageCommand}" Margin="0,0,8,0"
+                      Visibility="{Binding IsUpdateAvailable, Converter={StaticResource VisibleWhen}}" />
+              <Button Content="{l:Tr Updates.CheckNow}" Command="{Binding CheckCommand}" AutomationProperties.Name="Check for updates" />
+            </StackPanel>
+          </Grid>
+          <Border Style="{StaticResource SettingsDivider}" />
+          <Grid Style="{StaticResource SettingsRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE823;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Updates.AutoCheck}" />
+              <TextBlock Text="{l:Tr Updates.AutoCheckDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
+                      IsChecked="{Binding AutoCheck}" AutomationProperties.Name="Check for updates automatically" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
       <!-- Files and firewall -->
       <TextBlock Text="{l:Tr Settings.SectionFiles}" Style="{StaticResource SettingsHeading}" />
       <Border Style="{StaticResource SettingsGroup}">

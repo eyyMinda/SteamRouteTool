@@ -11,9 +11,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     readonly SettingsStore store;
     readonly AppSettings settings;
 
-    public SettingsViewModel(SettingsStore store, AppSettings settings)
+    public SettingsViewModel(SettingsStore store, AppSettings settings, UpdatesViewModel updates)
     {
         this.store = store;
+        Updates = updates;
         this.settings = settings;
         theme = settings.Theme;
         pingOnStartup = settings.PingOnStartup;
@@ -23,6 +24,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public IReadOnlyList<LanguageInfo> Languages => Loc.Languages;
+
+    /// <summary>The Updates section.</summary>
+    public UpdatesViewModel Updates { get; }
 
     [ObservableProperty]
     LanguageInfo language;

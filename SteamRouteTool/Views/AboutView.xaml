@@ -19,21 +19,6 @@
       </Border>
 
       <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
-            <Button Content="{l:Tr About.DownloadUpdate}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0"
-                    Command="{Binding OpenLinkCommand}" CommandParameter="{Binding UpdateUrl}"
-                    Visibility="{Binding IsUpdateAvailable, Converter={StaticResource VisibleWhen}}" />
-            <Button Content="{l:Tr About.CheckForUpdates}" Command="{Binding CheckForUpdatesCommand}" />
-          </StackPanel>
-          <StackPanel>
-            <TextBlock Text="{l:Tr About.Updates}" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource SecondaryText}" />
-          </StackPanel>
-        </DockPanel>
-      </Border>
-
-      <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="{l:Tr About.Links}" Style="{StaticResource SectionTitle}" />
           <WrapPanel>

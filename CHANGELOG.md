@@ -3,6 +3,26 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.1.1] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Updates in one click:** a new **Updates** section in Settings shows your version and checks GitHub for a newer one.
+  - **Update now** downloads the matching exe (the normal or the small one), verifies it against the release's `SHA256SUMS.txt`, replaces the running exe and restarts. Settings, presets and blocked routes are kept.
+  - **Check for updates automatically** (on by default) checks when the app starts and once a day; nothing is installed without a click.
+  - When a new version is found, an **Update to x.y.z** button appears at the bottom left; while the app is in the tray, a notification says so.
+- **Buy me a coffee** and a link to the author's GitHub at the bottom left, next to the version.
+
+### Changed
+
+- Checking for updates moved from the About page to Settings.
+
+### Fixed
+
+- The "Ping again" tooltip on ping values is now translated.
+
 ## [2.1.0] - 2026-11-03
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

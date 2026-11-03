@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -50,8 +51,9 @@ public partial class App : Application
 
         RoutesViewModel routes = new RoutesViewModel(new SdrConfigClient(httpClient), new FirewallService(), new PingService(),
             new PingCache(PingCache.DefaultPath), settingsStore, settings);
-        SettingsViewModel settingsViewModel = new SettingsViewModel(settingsStore, settings);
-        MainViewModel main = new MainViewModel(routes, settingsViewModel, new AboutViewModel(new UpdateChecker(httpClient)));
+        UpdatesViewModel updates = new UpdatesViewModel(new UpdateChecker(httpClient), settingsStore, settings, InstallAndRestart);
+        SettingsViewModel settingsViewModel = new SettingsViewModel(settingsStore, settings, updates);
+        MainViewModel main = new MainViewModel(routes, settingsViewModel, new AboutViewModel(), updates);
 
         MainWindow window = new MainWindow() { DataContext = main };
         // Closing covers the close button and Alt+F4; SessionEnding covers signing out and shutting down.
@@ -66,6 +68,7 @@ public partial class App : Application
         }
         window.Closing += (sender, args) => CleanUp();
         SessionEnding += (sender, args) => CleanUp();
+        cleanUp = CleanUp;
         MainWindow = window;
 
         // Exit from the tray menu also works while the window has never been shown.
@@ -76,6 +79,11 @@ public partial class App : Application
         });
         Exit += (sender, args) => tray.Dispose();
         ListenForShowRequests(tray);
+        // In the tray, a new version is announced with a notification; with the window open, the sidebar shows it.
+        updates.UpdateFound += release =>
+        {
+            if (!window.IsVisible) { tray.ShowNotification(Loc.T("Tray.UpdateTitle", release.Version.ToString(3)), Loc.T("Tray.UpdateText")); }
+        };
 
         // Started at sign-in: stay out of the way, in the tray or minimized on the taskbar.
         if (e.Args.Contains(StartupTask.MinimizedArgument))
@@ -89,9 +97,25 @@ public partial class App : Application
         }
         else { window.Show(); }
 
-        _ = main.About.CheckForUpdatesAsync();
+        updates.Start();
         _ = settingsViewModel.LoadStartWithWindowsAsync();
         await routes.InitializeAsync();
+    }
+
+    // Set once the window exists: saves state and, with "unblock on exit", removes the rules.
+    Action? cleanUp;
+
+    // The verified new exe is put in place first, so a failure leaves this copy running as it was; then this copy closes
+    // like on exit and starts the new one (which only becomes the running instance once this one has let go).
+    void InstallAndRestart(string newExePath)
+    {
+        Updater.Swap(newExePath);
+        cleanUp?.Invoke();
+        instanceMutex?.ReleaseMutex();
+        instanceMutex?.Dispose();
+        instanceMutex = null;
+        Process.Start(new ProcessStartInfo(Updater.ExePath!) { UseShellExecute = true });
+        Shutdown();
     }
 
     bool TryBecomeTheOnlyInstance()

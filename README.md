@@ -4,7 +4,7 @@ Choose which Valve relay locations your games can connect to.
 
 Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
 
-Current version: **2.1.0**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+Current version: **2.1.1**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ![Steam Route Tool: the Routes page, with Amsterdam expanded to show its relays](docs/screenshot.png)
 
@@ -35,7 +35,8 @@ Requirements:
 - **Runs in the background** (optional): minimize to the notification area instead of the taskbar, and start with Windows (minimized, without an administrator prompt).
 - **Light and dark theme** (Windows 11 style, follows your Windows setting).
 - **9 languages:** English, Deutsch, Español, Français, Polski, Português (Brasil), Русский, Türkçe and 简体中文, switchable in Settings without restarting.
-- **Built-in help, update check and links** to the changelog and releases.
+- **Updates in one click:** the app checks GitHub at startup and once a day (optional) and shows **Update to x.y.z** at the bottom left; **Update now** downloads the new exe, verifies it against the release's `SHA256SUMS.txt`, swaps it in and restarts.
+- **Built-in help** and links to the changelog and releases.
 
 The app's **How to use** page explains everything step by step.
 
@@ -54,6 +55,7 @@ Settings are grouped like Windows Settings; hover a setting for a longer explana
 - **Startup and tray:**
   - **Start with Windows:** starts the app minimized when you sign in, through a Task Scheduler task (named `SteamRouteTool`) that runs it with administrator rights, so there's no prompt.
   - **Minimize to tray:** minimizing hides the window from the taskbar and keeps an icon in the notification area. Click it to open the window; right-click it to switch games and presets, run Auto select, unblock all routes or exit. The close button still exits.
+- **Updates:** check now, install a newer version, and turn automatic checks on or off.
 - **Files and firewall:** shortcuts to the folder with your settings and game profiles, and to Windows Defender Firewall, where the rules can be inspected.
 
 ## How it works
