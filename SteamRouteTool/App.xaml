@@ -200,30 +200,7 @@
         <Setter Property="Background" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
       </Style>
 
-      <!-- Sidebar: "Buy me a coffee" in its brand yellow, and a bare icon link (GitHub). -->
-      <Style x:Key="CoffeeButton" TargetType="Button">
-        <Setter Property="Foreground" Value="#FF0D0C22" />
-        <Setter Property="Background" Value="#FFFFDD00" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Padding" Value="12,7" />
-        <Setter Property="Template">
-          <Setter.Value>
-            <ControlTemplate TargetType="Button">
-              <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
-              </Border>
-              <ControlTemplate.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                  <Setter TargetName="Chrome" Property="Background" Value="#FFF2D200" />
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                  <Setter TargetName="Chrome" Property="Background" Value="#FFE0C200" />
-                </Trigger>
-              </ControlTemplate.Triggers>
-            </ControlTemplate>
-          </Setter.Value>
-        </Setter>
-      </Style>
+      <!-- Sidebar: bare icon links (Buy me a coffee, GitHub). -->
       <Style x:Key="IconLinkButton" TargetType="Button">
         <Setter Property="Padding" Value="4" />
         <Setter Property="Template">

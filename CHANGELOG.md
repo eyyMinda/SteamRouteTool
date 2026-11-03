@@ -13,7 +13,7 @@ _Updated by [eyyMinda](https://github.com/eyyMinda)._
   - **Update now** downloads the matching exe (the normal or the small one), verifies it against the release's `SHA256SUMS.txt`, replaces the running exe and restarts. Settings, presets and blocked routes are kept.
   - **Check for updates automatically** (on by default) checks when the app starts and once a day; nothing is installed without a click.
   - When a new version is found, an **Update to x.y.z** button appears at the bottom left; while the app is in the tray, a notification says so.
-- **Buy me a coffee** and a link to the author's GitHub at the bottom left, next to the version.
+- **Buy me a coffee** and GitHub icons next to the version at the bottom left (their names show on hover).
 
 ### Changed
 
