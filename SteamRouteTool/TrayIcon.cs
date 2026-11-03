@@ -1,4 +1,5 @@
 using System.Windows;
+using SteamRouteTool.Models;
 using SteamRouteTool.Services;
 using SteamRouteTool.ViewModels;
 
@@ -6,7 +7,7 @@ namespace SteamRouteTool;
 
 /// <summary>
 /// The notification area icon, shown while "Minimize to tray" is on. Minimizing the window then hides it from the taskbar;
-/// clicking the icon brings it back, and its menu has Open, Presets, Unblock all and Exit.
+/// clicking the icon brings it back, and its menu switches games and presets, runs Auto select, unblocks all routes and exits.
 /// </summary>
 public sealed class TrayIcon : IDisposable
 {
@@ -28,7 +29,11 @@ public sealed class TrayIcon : IDisposable
         icon.ContextMenuRequested += () => icon.ShowMenu(
         [
             new NotifyIcon.MenuItem("Open Steam Route Tool", Restore, IsDefault: true),
-            new NotifyIcon.MenuItem("Presets", Submenu: GetPresetItems()),
+            null,
+            new NotifyIcon.MenuItem("Game: " + routes.SelectedGame.Name, Submenu: GetGameItems()),
+            new NotifyIcon.MenuItem("Preset: " + (routes.SelectedPreset?.Name ?? "none"), Submenu: GetPresetItems()),
+            new NotifyIcon.MenuItem("Auto select · " + routes.AutoSelectLabel, () => routes.ApplyAutoSelectCommand.Execute(null),
+                IsEnabled: routes.ApplyAutoSelectCommand.CanExecute(null)),
             new NotifyIcon.MenuItem("Unblock all", () => routes.UnblockAllCommand.Execute(null), IsEnabled: routes.UnblockAllCommand.CanExecute(null)),
             null,
             new NotifyIcon.MenuItem("Exit", exit)
@@ -85,6 +90,15 @@ public sealed class TrayIcon : IDisposable
     void UpdateVisibility()
     {
         icon.Visible = settings.MinimizeToTray || !window.IsVisible;
+    }
+
+    // The supported games, the selected one ticked. Choosing one switches to it and applies its saved profile.
+    List<NotifyIcon.MenuItem?> GetGameItems()
+    {
+        return Game.Supported
+            .Select(game => (NotifyIcon.MenuItem?)new NotifyIcon.MenuItem(game.Name, () => routes.SelectedGame = game,
+                IsChecked: game == routes.SelectedGame))
+            .ToList();
     }
 
     // The selected game's presets, the one matching what's blocked ticked. Choosing one applies it.

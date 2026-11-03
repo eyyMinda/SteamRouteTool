@@ -3,6 +3,21 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.0.8] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- The tray icon's menu now controls the app without opening the window:
+  - **Game:** switch between Counter-Strike 2, Dota 2 and Deadlock (the current game is ticked and shown in the menu).
+  - **Preset:** shows the active preset and switches presets for the current game.
+  - **Auto select:** keeps the fastest routes, as on the Routes page.
+
+### Fixed
+
+- Preset names containing "&" are shown correctly in the tray menu.
+
 ## [2.0.7] - 2026-11-03
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
