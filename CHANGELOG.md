@@ -17,6 +17,7 @@ _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
 ### Changed
 
+- **How to use** is easier to take in: a quick start of four step cards (with the ping colors), a short note on what to do when you're done, then the details and troubleshooting as collapsible sections you open when needed.
 - Checking for updates moved from the About page to Settings.
 
 ### Fixed
