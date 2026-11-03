@@ -18,6 +18,7 @@ _Updated by [eyyMinda](https://github.com/eyyMinda)._
 ### Changed
 
 - **How to use** is easier to take in: a quick start of four step cards (with the ping colors), a short note on what to do when you're done, then the details and troubleshooting as collapsible sections you open when needed.
+- **Common questions** on the How to use page: VAC safety, why administrator rights are needed, whether it lowers ping, longer queues, which games and modes are affected (and that FACEIT and community servers aren't), and privacy.
 - Checking for updates moved from the About page to Settings.
 
 ### Fixed

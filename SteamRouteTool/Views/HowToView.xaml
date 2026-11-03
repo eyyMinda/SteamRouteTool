@@ -30,6 +30,7 @@
         <!-- A collapsible card: the header row (icon, title, chevron) toggles the text below it. -->
         <Style x:Key="Topic" TargetType="Expander">
           <Setter Property="Margin" Value="0,0,0,6" />
+          <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
           <Setter Property="Template">
             <Setter.Value>
               <ControlTemplate TargetType="Expander">
@@ -59,7 +60,7 @@
                         </ControlTemplate>
                       </ToggleButton.Template>
                     </ToggleButton>
-                    <ContentPresenter x:Name="Body" Margin="16,0,16,6" Visibility="Collapsed" />
+                    <ContentPresenter x:Name="Body" Margin="16,10,16,6" Visibility="Collapsed" />
                   </StackPanel>
                 </Border>
                 <ControlTemplate.Triggers>
@@ -135,6 +136,74 @@
                    Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
         <TextBlock l:RichText.Text="{l:Tr HowTo.WhenDone}" Style="{StaticResource SecondaryText}" />
       </DockPanel>
+
+      <TextBlock Text="{l:Tr HowTo.CommonQuestions}" Style="{StaticResource SettingsHeading}" />
+      <Expander Style="{StaticResource Topic}">
+        <Expander.Header>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE83D;" Style="{StaticResource Icon}" FontSize="16" Width="28" VerticalAlignment="Center" />
+            <TextBlock Text="{l:Tr HowTo.FaqVac}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Expander.Header>
+        <StackPanel Margin="28,0,0,0">
+          <TextBlock l:RichText.Text="{l:Tr HowTo.FaqVacAnswer}" Style="{StaticResource TopicBody}" />
+        </StackPanel>
+      </Expander>
+      <Expander Style="{StaticResource Topic}">
+        <Expander.Header>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE7EF;" Style="{StaticResource Icon}" FontSize="16" Width="28" VerticalAlignment="Center" />
+            <TextBlock Text="{l:Tr HowTo.FaqAdmin}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Expander.Header>
+        <StackPanel Margin="28,0,0,0">
+          <TextBlock l:RichText.Text="{l:Tr HowTo.FaqAdminAnswer}" Style="{StaticResource TopicBody}" />
+        </StackPanel>
+      </Expander>
+      <Expander Style="{StaticResource Topic}">
+        <Expander.Header>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xEC4A;" Style="{StaticResource Icon}" FontSize="16" Width="28" VerticalAlignment="Center" />
+            <TextBlock Text="{l:Tr HowTo.FaqLowerPing}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Expander.Header>
+        <StackPanel Margin="28,0,0,0">
+          <TextBlock l:RichText.Text="{l:Tr HowTo.FaqLowerPingAnswer}" Style="{StaticResource TopicBody}" />
+        </StackPanel>
+      </Expander>
+      <Expander Style="{StaticResource Topic}">
+        <Expander.Header>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE916;" Style="{StaticResource Icon}" FontSize="16" Width="28" VerticalAlignment="Center" />
+            <TextBlock Text="{l:Tr HowTo.FaqQueue}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Expander.Header>
+        <StackPanel Margin="28,0,0,0">
+          <TextBlock l:RichText.Text="{l:Tr HowTo.FaqQueueAnswer}" Style="{StaticResource TopicBody}" />
+        </StackPanel>
+      </Expander>
+      <Expander Style="{StaticResource Topic}">
+        <Expander.Header>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE7FC;" Style="{StaticResource Icon}" FontSize="16" Width="28" VerticalAlignment="Center" />
+            <TextBlock Text="{l:Tr HowTo.FaqModes}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Expander.Header>
+        <StackPanel Margin="28,0,0,0">
+          <TextBlock l:RichText.Text="{l:Tr HowTo.FaqModesAnswer}" Style="{StaticResource TopicBody}" />
+        </StackPanel>
+      </Expander>
+      <Expander Style="{StaticResource Topic}">
+        <Expander.Header>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="16" Width="28" VerticalAlignment="Center" />
+            <TextBlock Text="{l:Tr HowTo.FaqPrivacy}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Expander.Header>
+        <StackPanel Margin="28,0,0,0">
+          <TextBlock l:RichText.Text="{l:Tr HowTo.FaqPrivacyAnswer}" Style="{StaticResource TopicBody}" />
+        </StackPanel>
+      </Expander>
 
       <TextBlock Text="{l:Tr HowTo.MoreDetails}" Style="{StaticResource SettingsHeading}" />
       <Expander Style="{StaticResource Topic}">

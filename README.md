@@ -38,7 +38,7 @@ Requirements:
 - **Updates in one click:** the app checks GitHub at startup and once a day (optional) and shows **Update to x.y.z** at the bottom left; **Update now** downloads the new exe, verifies it against the release's `SHA256SUMS.txt`, swaps it in and restarts.
 - **Built-in help** and links to the changelog and releases.
 
-The app's **How to use** page explains everything step by step.
+The app's **How to use** page has a quick start, common questions (VAC, administrator rights, queue times, FACEIT, privacy) and details on every feature.
 
 ## Settings
 
