@@ -42,6 +42,15 @@ jobs:
           -p:DebugType=none
           -o publish
 
+      # A small build for PCs that have the .NET 10 Desktop Runtime; without it, Windows offers to download it.
+      - name: Publish small exe (needs .NET)
+        run: >-
+          dotnet publish SteamRouteTool/SteamRouteTool.csproj -c Release -r win-x64
+          --self-contained false
+          -p:PublishSingleFile=true
+          -p:DebugType=none
+          -o publish-small
+
       - name: Package and write release notes
         shell: pwsh
         env:
@@ -49,9 +58,11 @@ jobs:
         run: |
           New-Item -ItemType Directory release | Out-Null
           $exe = "SteamRouteTool-$env:VERSION-win-x64.exe"
+          $smallExe = "SteamRouteTool-$env:VERSION-win-x64-small.exe"
           Copy-Item publish/SteamRouteTool.exe "release/$exe"
-          $hash = (Get-FileHash "release/$exe" -Algorithm SHA256).Hash.ToLower()
-          Set-Content release/SHA256SUMS.txt "$hash  $exe" -Encoding ascii
+          Copy-Item publish-small/SteamRouteTool.exe "release/$smallExe"
+          $sums = foreach ($file in $exe, $smallExe) { (Get-FileHash "release/$file" -Algorithm SHA256).Hash.ToLower() + "  " + $file }
+          Set-Content release/SHA256SUMS.txt $sums -Encoding ascii
 
           # Release notes: every CHANGELOG.md section newer than the previous release, so versions that were never
           # released on their own (e.g. 2.0.0-2.0.4 before 2.0.5) are included. On release/* branches this is just the fix.
@@ -72,7 +83,11 @@ jobs:
           $notes = @($sections) + @(
             "",
             "---",
-            "**Download:** ``$exe`` is self-contained: no .NET install needed. Windows may show a SmartScreen warning for this unsigned exe; choose **More info**, then **Run anyway**. Verify the download against ``SHA256SUMS.txt``."
+            "**Download:**",
+            "- ``$exe``: works on any Windows 10/11 PC, no .NET install needed.",
+            "- ``$smallExe``: about 1 MB, for PCs with the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (Windows offers to download it if it's missing).",
+            "",
+            "Windows may show a SmartScreen warning for these unsigned exes; choose **More info**, then **Run anyway**. Verify downloads against ``SHA256SUMS.txt``."
           )
           Set-Content notes.md $notes -Encoding utf8
 

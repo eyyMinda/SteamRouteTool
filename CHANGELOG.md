@@ -3,6 +3,19 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.1.0] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- A second, small download (about 1 MB) for PCs with the .NET 10 Desktop Runtime: `SteamRouteTool-<version>-win-x64-small.exe`. The self-contained exe stays the default.
+
+### Changed
+
+- **Settings** are organized like Windows Settings: grouped under General, Routes, Startup and tray, and Files and firewall, one row per setting with an icon, a short description and its control. On/off settings use switches; hover a setting for the full explanation.
+- The download is about 3.4 MB smaller (65.1 → 61.7 MB): .NET's own translated framework messages are no longer included (the app has its own translations).
+
 ## [2.0.9] - 2026-11-03
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

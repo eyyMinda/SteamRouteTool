@@ -2,92 +2,166 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="clr-namespace:SteamRouteTool.Localization">
+  <!-- Grouped like Windows Settings: a heading per group, one row per setting (icon, title, short description, control).
+       The longer explanation of a setting is its row's tooltip; the How to use page has the full story. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+      <StackPanel.Resources>
+        <Style x:Key="RowIcon" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+          <Setter Property="FontSize" Value="18" />
+          <Setter Property="Width" Value="40" />
+          <Setter Property="HorizontalAlignment" Value="Left" />
+          <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+      </StackPanel.Resources>
+
       <TextBlock Text="{l:Tr Settings.Title}" Style="{StaticResource PageTitle}" Margin="0,0,0,16" />
 
-      <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <ComboBox DockPanel.Dock="Right" Margin="24,0,0,0" ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" DisplayMemberPath="Name"
-                    Width="200" VerticalAlignment="Center" AutomationProperties.Name="Language" />
-          <StackPanel>
-            <TextBlock Text="{l:Tr Settings.Language}" FontWeight="SemiBold" />
-            <TextBlock Text="{l:Tr Settings.LanguageDescription}" Style="{StaticResource SecondaryText}" />
-          </StackPanel>
-        </DockPanel>
+      <!-- General -->
+      <TextBlock Text="{l:Tr Settings.SectionGeneral}" Style="{StaticResource SettingsHeading}" />
+      <Border Style="{StaticResource SettingsGroup}">
+        <StackPanel>
+          <Grid Style="{StaticResource SettingsRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE774;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.Language}" />
+              <TextBlock Text="{l:Tr Settings.LanguageDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <ComboBox Grid.Column="2" Margin="24,0,0,0" VerticalAlignment="Center" Width="200"
+                      ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" DisplayMemberPath="Name" AutomationProperties.Name="Language" />
+          </Grid>
+          <Border Style="{StaticResource SettingsDivider}" />
+          <Grid Style="{StaticResource SettingsRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE790;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.Theme}" />
+              <TextBlock Text="{l:Tr Settings.ThemeDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <ComboBox Grid.Column="2" Margin="24,0,0,0" VerticalAlignment="Center" Width="200"
+                      ItemsSource="{Binding ThemeOptions}" SelectedValuePath="Key" DisplayMemberPath="Text" SelectedValue="{Binding Theme}"
+                      AutomationProperties.Name="Theme" />
+          </Grid>
+        </StackPanel>
       </Border>
 
-      <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <ComboBox DockPanel.Dock="Right" Margin="24,0,0,0" ItemsSource="{Binding ThemeOptions}" SelectedValuePath="Key" DisplayMemberPath="Text"
-                    SelectedValue="{Binding Theme}" Width="200" VerticalAlignment="Center" AutomationProperties.Name="Theme" />
-          <StackPanel>
-            <TextBlock Text="{l:Tr Settings.Theme}" FontWeight="SemiBold" />
-            <TextBlock Text="{l:Tr Settings.ThemeDescription}" Style="{StaticResource SecondaryText}" />
-          </StackPanel>
-        </DockPanel>
+      <!-- Routes -->
+      <TextBlock Text="{l:Tr Settings.SectionRoutes}" Style="{StaticResource SettingsHeading}" />
+      <Border Style="{StaticResource SettingsGroup}">
+        <StackPanel>
+          <Grid Style="{StaticResource SettingsRow}" Background="Transparent">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE9D9;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.PingAuto}" />
+              <TextBlock Text="{l:Tr Settings.PingAutoDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
+                      IsChecked="{Binding PingOnStartup}" AutomationProperties.Name="Ping routes automatically" />
+          </Grid>
+          <Border Style="{StaticResource SettingsDivider}" />
+          <Grid Style="{StaticResource SettingsRow}" Background="Transparent" ToolTip="{l:Tr Settings.UnblockOnExitDetails}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE785;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.UnblockOnExit}" />
+              <TextBlock Text="{l:Tr Settings.UnblockOnExitDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
+                      IsChecked="{Binding UnblockOnExit}" AutomationProperties.Name="Unblock all routes when closing" />
+          </Grid>
+        </StackPanel>
       </Border>
 
-      <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding PingOnStartup}" VerticalAlignment="Center" AutomationProperties.Name="Ping routes automatically" />
-          <StackPanel>
-            <TextBlock Text="{l:Tr Settings.PingAuto}" FontWeight="SemiBold" />
-            <TextBlock Text="{l:Tr Settings.PingAutoDescription}" Style="{StaticResource SecondaryText}" />
-          </StackPanel>
-        </DockPanel>
+      <!-- Startup and tray -->
+      <TextBlock Text="{l:Tr Settings.SectionStartup}" Style="{StaticResource SettingsHeading}" />
+      <Border Style="{StaticResource SettingsGroup}">
+        <StackPanel>
+          <Grid Style="{StaticResource SettingsRow}" Background="Transparent" ToolTip="{l:Tr Settings.StartWithWindowsDetails}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE7E8;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.StartWithWindows}" />
+              <TextBlock Text="{l:Tr Settings.StartWithWindowsDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
+                      IsChecked="{Binding StartWithWindows}" IsEnabled="{Binding CanChangeStartup}" AutomationProperties.Name="Start with Windows" />
+          </Grid>
+          <Border Style="{StaticResource SettingsDivider}" />
+          <Grid Style="{StaticResource SettingsRow}" Background="Transparent" ToolTip="{l:Tr Settings.MinimizeToTrayDetails}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE921;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.MinimizeToTray}" />
+              <TextBlock Text="{l:Tr Settings.MinimizeToTrayDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
+                      IsChecked="{Binding MinimizeToTray}" AutomationProperties.Name="Minimize to tray" />
+          </Grid>
+        </StackPanel>
       </Border>
 
-      <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding StartWithWindows}" IsEnabled="{Binding CanChangeStartup}"
-                    VerticalAlignment="Center" AutomationProperties.Name="Start with Windows" />
-          <StackPanel>
-            <TextBlock Text="{l:Tr Settings.StartWithWindows}" FontWeight="SemiBold" />
-            <TextBlock Text="{l:Tr Settings.StartWithWindowsDescription}" Style="{StaticResource SecondaryText}" />
-          </StackPanel>
-        </DockPanel>
-      </Border>
-
-      <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding MinimizeToTray}" VerticalAlignment="Center" AutomationProperties.Name="Minimize to tray" />
-          <StackPanel>
-            <TextBlock Text="{l:Tr Settings.MinimizeToTray}" FontWeight="SemiBold" />
-            <TextBlock Text="{l:Tr Settings.MinimizeToTrayDescription}" Style="{StaticResource SecondaryText}" />
-          </StackPanel>
-        </DockPanel>
-      </Border>
-
-      <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <CheckBox DockPanel.Dock="Right" Margin="24,0,0,0" IsChecked="{Binding UnblockOnExit}" VerticalAlignment="Center" AutomationProperties.Name="Unblock all routes when closing" />
-          <StackPanel>
-            <TextBlock Text="{l:Tr Settings.UnblockOnExit}" FontWeight="SemiBold" />
-            <TextBlock Text="{l:Tr Settings.UnblockOnExitDescription}" Style="{StaticResource SecondaryText}" />
-          </StackPanel>
-        </DockPanel>
-      </Border>
-
-      <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <Button DockPanel.Dock="Right" Margin="24,0,0,0" Content="{l:Tr Settings.OpenFolder}" Command="{Binding OpenSettingsFolderCommand}" VerticalAlignment="Center" />
-          <StackPanel>
-            <TextBlock Text="{l:Tr Settings.Folder}" FontWeight="SemiBold" />
-            <TextBlock Text="{l:Tr Settings.FolderDescription}" Style="{StaticResource SecondaryText}" />
-            <TextBox Text="{Binding SettingsFolder, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="Consolas" Padding="0,4" />
-          </StackPanel>
-        </DockPanel>
-      </Border>
-
-      <Border Style="{StaticResource Card}">
-        <DockPanel>
-          <Button DockPanel.Dock="Right" Margin="24,0,0,0" Content="{l:Tr Settings.OpenFirewall}" Command="{Binding OpenFirewallCommand}" VerticalAlignment="Center" />
-          <StackPanel>
-            <TextBlock Text="{l:Tr Settings.FirewallRules}" FontWeight="SemiBold" />
-            <TextBlock Text="{l:Tr Settings.FirewallRulesDescription}" Style="{StaticResource SecondaryText}" />
-          </StackPanel>
-        </DockPanel>
+      <!-- Files and firewall -->
+      <TextBlock Text="{l:Tr Settings.SectionFiles}" Style="{StaticResource SettingsHeading}" />
+      <Border Style="{StaticResource SettingsGroup}">
+        <StackPanel>
+          <Grid Style="{StaticResource SettingsRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE8B7;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.Folder}" />
+              <TextBlock Text="{l:Tr Settings.FolderDescription}" Style="{StaticResource SecondaryText}" />
+              <TextBox Text="{Binding SettingsFolder, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                       FontFamily="Consolas" Padding="0,2" />
+            </StackPanel>
+            <Button Grid.Column="2" Margin="24,0,0,0" VerticalAlignment="Center" Content="{l:Tr Settings.OpenFolder}"
+                    Command="{Binding OpenSettingsFolderCommand}" />
+          </Grid>
+          <Border Style="{StaticResource SettingsDivider}" />
+          <Grid Style="{StaticResource SettingsRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xEA18;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.FirewallRules}" />
+              <TextBlock Text="{l:Tr Settings.FirewallRulesDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <Button Grid.Column="2" Margin="24,0,0,0" VerticalAlignment="Center" Content="{l:Tr Settings.OpenFirewall}"
+                    Command="{Binding OpenFirewallCommand}" />
+          </Grid>
+        </StackPanel>
       </Border>
     </StackPanel>
   </ScrollViewer>
