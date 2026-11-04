@@ -17,6 +17,18 @@
         <TextBlock Text="{Binding FirewallWarning}" TextWrapping="Wrap" VerticalAlignment="Center" />
       </DockPanel>
     </Border>
+    <!-- Locations Valve added: allowed (with Block) or already blocked by the setting. -->
+    <Border Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,0,0,10"
+            Visibility="{Binding NewRoutesMessage, Converter={StaticResource VisibleWhen}}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="{l:Tr Common.Dismiss}" Command="{Binding DismissNewRoutesCommand}" Margin="8,0,0,0" VerticalAlignment="Center" />
+        <Button DockPanel.Dock="Right" Content="{l:Tr NewRoutes.Block}" Command="{Binding BlockNewRoutesCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+                Style="{DynamicResource AccentButtonStyle}" Visibility="{Binding CanBlockNewRoutes, Converter={StaticResource VisibleWhen}}" />
+        <TextBlock Text="&#xE909;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,10,0" />
+        <TextBlock Text="{Binding NewRoutesMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
     <Border Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
             BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,0,0,10"
             Visibility="{Binding ErrorMessage, Converter={StaticResource VisibleWhen}}">

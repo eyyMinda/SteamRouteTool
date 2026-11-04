@@ -53,6 +53,7 @@ public partial class App : Application
             new PingCache(PingCache.DefaultPath), settingsStore, settings);
         UpdatesViewModel updates = new UpdatesViewModel(new UpdateChecker(httpClient), settingsStore, settings, InstallAndRestart);
         SettingsViewModel settingsViewModel = new SettingsViewModel(settingsStore, settings, updates);
+        settingsViewModel.BlockNewRoutesChanged += routes.OnBlockNewRoutesChanged;
         MainViewModel main = new MainViewModel(routes, settingsViewModel, new AboutViewModel(), updates);
 
         MainWindow window = new MainWindow() { DataContext = main };

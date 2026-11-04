@@ -4,7 +4,7 @@ Choose which Valve relay locations your games can connect to.
 
 Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
 
-Current version: **2.1.4**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+Current version: **2.1.5**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ![Steam Route Tool: the Routes page with game tabs, presets, Auto select and the server list](docs/screenshot.png)
 
@@ -37,6 +37,7 @@ Requirements:
 - **9 languages:** English, Deutsch, Español, Français, Polski, Português (Brasil), Русский, Türkçe and 简体中文, switchable in Settings without restarting.
 - **Updates in one click:** the app checks GitHub at startup and once a day (optional) and shows **Update to x.y.z** at the bottom left; **Update now** downloads the new exe, verifies it against the release's `SHA256SUMS.txt`, swaps it in and restarts.
 - **Warns when Windows Firewall is off**, since blocking can't work then.
+- **Tells you about new locations** Valve adds (allowed by default, one click to block), or blocks them automatically if you prefer.
 - **Built-in help** and links to the changelog and releases.
 
 The app's **How to use** page has a quick start, common questions (VAC, administrator rights, queue times, FACEIT, privacy) and details on every feature.

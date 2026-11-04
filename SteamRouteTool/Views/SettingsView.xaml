@@ -87,6 +87,21 @@
             <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
                       IsChecked="{Binding UnblockOnExit}" AutomationProperties.Name="Unblock all routes when closing" />
           </Grid>
+          <Border Style="{StaticResource SettingsDivider}" />
+          <Grid Style="{StaticResource SettingsRow}" Background="Transparent" ToolTip="{l:Tr Settings.BlockNewDetails}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE909;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.BlockNew}" />
+              <TextBlock Text="{l:Tr Settings.BlockNewDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
+                      IsChecked="{Binding BlockNewRoutes}" AutomationProperties.Name="Block new locations automatically" />
+          </Grid>
         </StackPanel>
       </Border>
 

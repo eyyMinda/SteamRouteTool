@@ -20,6 +20,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         pingOnStartup = settings.PingOnStartup;
         unblockOnExit = settings.UnblockOnExit;
         minimizeToTray = settings.MinimizeToTray;
+        blockNewRoutes = settings.BlockNewRoutes;
         language = Loc.Languages.FirstOrDefault(info => info.Code == settings.Language) ?? Loc.Languages[0];
     }
 
@@ -45,6 +46,19 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         settings.UnblockOnExit = value;
         store.Save(settings);
+    }
+
+    [ObservableProperty]
+    bool blockNewRoutes;
+
+    /// <summary>Raised when "Block new locations automatically" changes.</summary>
+    public event Action? BlockNewRoutesChanged;
+
+    partial void OnBlockNewRoutesChanged(bool value)
+    {
+        settings.BlockNewRoutes = value;
+        store.Save(settings);
+        BlockNewRoutesChanged?.Invoke();
     }
 
     [ObservableProperty]

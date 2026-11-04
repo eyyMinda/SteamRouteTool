@@ -21,6 +21,10 @@ public sealed class AppSettings
     /// <summary>How many of the fastest routes Auto select keeps.</summary>
     public int AutoRouteCount { get; set; } = AutoSelector.DefaultRouteCount;
     public int LastAppId { get; set; } = Models.Game.CounterStrike2;
+    /// <summary>Block locations Valve adds (instead of allowing them), and block them when applying presets saved before they existed.</summary>
+    public bool BlockNewRoutes { get; set; }
+    /// <summary>The route codes seen per game (by app ID), to spot locations Valve adds.</summary>
+    public Dictionary<int, List<string>> KnownRoutes { get; set; } = new Dictionary<int, List<string>>();
     /// <summary>Saved block profile per game (by app ID), applied to the firewall when switching to that game.</summary>
     public Dictionary<int, GameProfile> Profiles { get; set; } = new Dictionary<int, GameProfile>();
     /// <summary>Named sets of blocked routes per game (by app ID), in the order they were created.</summary>
@@ -41,6 +45,8 @@ public sealed class GamePreset
     public List<string> BlockedRoutes { get; set; } = new List<string>();
     /// <summary>Addresses of individually blocked relays of routes that are only partly blocked.</summary>
     public List<string> BlockedRelays { get; set; } = new List<string>();
+    /// <summary>Every route code when the preset was saved, so routes added later can be told apart (empty for older presets).</summary>
+    public List<string> KnownRoutes { get; set; } = new List<string>();
 }
 
 /// <summary>Loads and saves <see cref="AppSettings"/> as JSON. Read and write failures fall back to defaults / are ignored.</summary>

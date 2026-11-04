@@ -232,6 +232,37 @@ public sealed partial class RoutesViewModel : ObservableObject
         return LoadGameAsync(SelectedGame, fromFirewall: true);
     }
 
+    // ----- New locations -----
+
+    /// <summary>Tells about locations Valve added since the game was last loaded.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanBlockNewRoutes))]
+    string? newRoutesMessage;
+
+    // The added locations that are still allowed, for "Block".
+    List<Pop> newRoutes = new List<Pop>();
+
+    public bool CanBlockNewRoutes => newRoutes.Count > 0;
+
+    [RelayCommand]
+    async Task BlockNewRoutesAsync()
+    {
+        HashSet<Relay> blocked = blockedRelays.ToHashSet();
+        blocked.UnionWith(newRoutes.SelectMany(pop => pop.Relays));
+        int count = newRoutes.Count;
+        if (await ApplyBlockedAsync(blocked, Loc.Plural("NewRoutes.BlockedNow", count)))
+        {
+            newRoutes = new List<Pop>();
+            NewRoutesMessage = null;
+        }
+    }
+
+    [RelayCommand]
+    void DismissNewRoutes() => NewRoutesMessage = null;
+
+    /// <summary>Called when "Block new locations automatically" changes, so the preset list matches again.</summary>
+    public void OnBlockNewRoutesChanged() => UpdateSelectedPreset();
+
     // ----- Windows Firewall state -----
 
     /// <summary>Shown while Windows Firewall is off for an active network, since the rules then block nothing.</summary>
@@ -318,6 +349,16 @@ public sealed partial class RoutesViewModel : ObservableObject
             }
         }
         if (load != loadVersion) { return; }
+
+        // Locations Valve added since this game was last loaded: allowed (with a notice) or, if set, blocked.
+        List<Pop> added = PresetLogic.FindNewRoutes(settings.KnownRoutes.GetValueOrDefault(game.AppId), loaded);
+        if (added.Count > 0 && blocked != null && settings.BlockNewRoutes) { blocked.UnionWith(added.SelectMany(pop => pop.Relays)); }
+        settings.KnownRoutes[game.AppId] = loaded.Select(pop => pop.Code).ToList();
+        settingsStore.Save(settings);
+        newRoutes = settings.BlockNewRoutes ? new List<Pop>() : added;
+        string names = string.Join(", ", added.Select(pop => pop.Description));
+        NewRoutesMessage = added.Count == 0 ? null
+            : Loc.Plural(settings.BlockNewRoutes ? "NewRoutes.Blocked" : "NewRoutes.Found", added.Count, names);
 
         pops = loaded;
         blockedRelays = blocked ?? new HashSet<Relay>();
@@ -681,7 +722,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     void UpdateSelectedPreset()
     {
         updatingSelectedPreset = true;
-        SelectedPreset = pops.Count == 0 ? null : Presets.FirstOrDefault(preset => PresetLogic.Matches(preset.Model, pops, blockedRelays));
+        SelectedPreset = pops.Count == 0 ? null : Presets.FirstOrDefault(preset => PresetLogic.Matches(preset.Model, pops, blockedRelays, settings.BlockNewRoutes));
         updatingSelectedPreset = false;
     }
 
@@ -700,7 +741,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             return;
         }
         HashSet<Relay> before = blockedRelays.ToHashSet();
-        HashSet<Relay> blocked = PresetLogic.Resolve(preset.Model, pops);
+        HashSet<Relay> blocked = PresetLogic.Resolve(preset.Model, pops, settings.BlockNewRoutes);
         int routes = CountBlockedRoutes(pops, blocked);
         string message = Loc.Plural("Presets.Applied", routes, preset.Name);
         if (await ApplyBlockedAsync(blocked, message)) { OfferUndo(before); }
@@ -866,6 +907,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         await PingRoutesAsync(Routes.ToList());
         IsPinging = false;
         SavePingCache();
+        if (SelectedSort == SortPing) { RefreshView(); }
     }
 
     bool CanPingAll() => !IsPinging && !IsLoading;

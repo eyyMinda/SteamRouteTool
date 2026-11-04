@@ -14,6 +14,7 @@ public static class PresetLogic
         GamePreset preset = new GamePreset { Name = name };
         foreach (Pop pop in pops)
         {
+            preset.KnownRoutes.Add(pop.Code);
             List<Relay> relays = pop.Relays.Where(blocked.Contains).ToList();
             if (relays.Count == 0) { continue; }
             if (relays.Count == pop.Relays.Count) { preset.BlockedRoutes.Add(pop.Code); }
@@ -22,20 +23,38 @@ public static class PresetLogic
         return preset;
     }
 
-    /// <summary>The relays to block for a preset. Routes and relays that no longer exist are skipped.</summary>
-    public static HashSet<Relay> Resolve(GamePreset preset, IEnumerable<Pop> pops)
+    /// <summary>
+    /// The relays to block for a preset. Routes and relays that no longer exist are skipped. With
+    /// <paramref name="blockNewRoutes"/>, routes added after the preset was saved are blocked too.
+    /// </summary>
+    public static HashSet<Relay> Resolve(GamePreset preset, IEnumerable<Pop> pops, bool blockNewRoutes = false)
     {
         HashSet<string> routes = preset.BlockedRoutes.ToHashSet();
         HashSet<string> addresses = preset.BlockedRelays.ToHashSet();
+        HashSet<string> known = preset.KnownRoutes.ToHashSet();
+        bool blockUnknown = blockNewRoutes && known.Count > 0;
         return pops
-            .SelectMany(pop => routes.Contains(pop.Code) ? pop.Relays : pop.Relays.Where(relay => addresses.Contains(relay.Address)))
+            .SelectMany(pop => routes.Contains(pop.Code) || (blockUnknown && !known.Contains(pop.Code))
+                ? pop.Relays
+                : pop.Relays.Where(relay => addresses.Contains(relay.Address)))
             .ToHashSet();
     }
 
     /// <summary>Whether applying the preset would block exactly what's blocked now.</summary>
-    public static bool Matches(GamePreset preset, IEnumerable<Pop> pops, IReadOnlySet<Relay> blocked)
+    public static bool Matches(GamePreset preset, IEnumerable<Pop> pops, IReadOnlySet<Relay> blocked, bool blockNewRoutes = false)
     {
-        return Resolve(preset, pops).SetEquals(blocked);
+        return Resolve(preset, pops, blockNewRoutes).SetEquals(blocked);
+    }
+
+    /// <summary>
+    /// Routes in <paramref name="pops"/> that weren't in <paramref name="knownCodes"/>. Nothing is new when there's no
+    /// earlier list (the first time a game is loaded).
+    /// </summary>
+    public static List<Pop> FindNewRoutes(IReadOnlyCollection<string>? knownCodes, IEnumerable<Pop> pops)
+    {
+        if (knownCodes == null || knownCodes.Count == 0) { return new List<Pop>(); }
+        HashSet<string> known = knownCodes.ToHashSet();
+        return pops.Where(pop => !known.Contains(pop.Code)).ToList();
     }
 
     /// <summary>The name as it's saved (trimmed and shortened), or null if it's empty.</summary>

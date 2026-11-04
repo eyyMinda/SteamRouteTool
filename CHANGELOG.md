@@ -3,6 +3,19 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.1.5] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **New locations from Valve:** the app remembers each game's locations and tells you when Valve adds one ("Valve added a new location: …. It's allowed."), with **Block** to block it right away.
+- **Block new locations automatically** (Settings → Routes, off by default): new locations are blocked as soon as they appear, and presets also block locations that didn't exist when they were saved, so a preset like "Warsaw only" stays that way.
+
+### Fixed
+
+- When the list is sorted by ping, it re-sorts after **Ping all** finishes.
+
 ## [2.1.4] - 2026-11-04
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
