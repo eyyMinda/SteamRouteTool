@@ -260,7 +260,6 @@
   "About.License": "许可证",
   "About.LicenseText": "Steam Route Tool 是基于 GNU 通用公共许可证 v3.0 的自由软件。你可以在许可证条款下使用、研究、分享和修改它。",
   "About.ReadLicense": "阅读许可证",
-  "About.BasedOn": "基于 Froody 的原版 Steam Route Tool（2019），GPL-3.0。",
   "About.Trademarks": "与 Valve Corporation 无关，也未获其认可。Steam、Counter-Strike 2、Dota 2 和 Deadlock 是 Valve Corporation 的商标。",
 
   "Updates.Title": "更新",

@@ -50,7 +50,6 @@
               <Run Text="{l:Tr About.ReadLicense}" />
             </Hyperlink>
           </TextBlock>
-          <TextBlock Text="{l:Tr About.BasedOn}" Style="{StaticResource SecondaryText}" Margin="0,0,0,6" />
           <TextBlock Text="{l:Tr About.Trademarks}" Style="{StaticResource SecondaryText}" />
         </StackPanel>
       </Border>

@@ -36,7 +36,7 @@
     <AssemblyTitle>Choose which Valve relay locations your games can connect to</AssemblyTitle>
     <Company>eyyMinda</Company>
     <Authors>eyyMinda</Authors>
-    <Copyright>Copyright © 2026 eyyMinda, portions © 2019 Froody</Copyright>
+    <Copyright>Copyright © 2026 eyyMinda</Copyright>
     <!-- Keep the version shown in the app as the plain version, without a +commit suffix. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>

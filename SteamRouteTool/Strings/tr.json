@@ -260,7 +260,6 @@
   "About.License": "Lisans",
   "About.LicenseText": "Steam Route Tool, GNU Genel Kamu Lisansı v3.0 kapsamında özgür bir yazılımdır. Lisans koşulları çerçevesinde kullanabilir, inceleyebilir, paylaşabilir ve değiştirebilirsiniz.",
   "About.ReadLicense": "Lisansı oku",
-  "About.BasedOn": "Froody'nin orijinal Steam Route Tool'una (2019) dayanır, GPL-3.0.",
   "About.Trademarks": "Valve Corporation ile bağlantılı değildir ve onun tarafından desteklenmez. Steam, Counter-Strike 2, Dota 2 ve Deadlock, Valve Corporation'ın ticari markalarıdır.",
 
   "Updates.Title": "Güncellemeler",
