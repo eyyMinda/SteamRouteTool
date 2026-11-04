@@ -9,6 +9,9 @@
              ShutdownMode="OnMainWindowClose">
   <Application.Resources>
     <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Gaming.xaml" />
+      </ResourceDictionary.MergedDictionaries>
       <!-- Pages: each view model in the navigation is shown with its view. -->
       <DataTemplate DataType="{x:Type vm:RoutesViewModel}">
         <views:RoutesView />

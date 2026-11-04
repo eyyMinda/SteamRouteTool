@@ -4,9 +4,9 @@ Choose which Valve relay locations your games can connect to.
 
 Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
 
-Current version: **2.1.1**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+Current version: **2.1.2**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
-![Steam Route Tool: the Routes page, with Amsterdam expanded to show its relays](docs/screenshot.png)
+![Steam Route Tool: the Routes page with game tabs, presets, Auto select and the server list](docs/screenshot.png)
 
 ## Download
 
@@ -24,10 +24,10 @@ Requirements:
 ## Features
 
 - **Pick a game:** Counter-Strike 2, Dota 2 or Deadlock. The route list comes live from Steam.
-- **Block routes with one click.** Each route can be expanded to block individual relays.
+- **Block routes with one click** on their Allowed / Blocked pill. Each route can be expanded to block individual relays.
 - **Auto select:** one click keeps the 5 fastest routes and blocks the rest (choose another number, with a preview, from the arrow; Undo is one click away).
-- **Play in one region:** filter to a region (or search) and use **Block all except shown**.
-- **Sort and filter:** search by name, code or region; filter by region or blocked state; group by region or sort by any column.
+- **Play in one region:** pick a region chip (or search) and use **Block all except shown** in the ⋯ menu.
+- **Sort and filter:** search by name, code or region; filter by region or blocked state; sort by region, name, ping or status. The top shows routes blocked and allowed, and the best and worst ping you still allow.
 - **Fast, reliable pings:** a quick round fills the list in a second or two; anything that didn't answer is retried one at a time for networks that drop parallel pings. Last session's pings are shown straight away.
 - **Presets:** save the blocked routes under your own names per game (e.g. "EU blocked", "Warsaw only") and switch between them from the Routes page or the tray icon, with Undo.
 - **Game profiles:** each game remembers its blocked routes and applies them when you switch games.

@@ -3,6 +3,21 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.1.2] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Changed
+
+- **A new Routes page**, bolder and easier to use:
+  - Big game tabs, and headline numbers: routes blocked and allowed, the **best ping** and the **worst ping** you still allow (coloured by speed; hover for the location).
+  - **Presets** as chips: click one to apply it (the active one glows), **Save current** to save or manage them.
+  - **Auto select** as its own card: keep − N +, Apply (hover for a preview).
+  - Search, a **sort** list (region, name, ping, status), **Ping all**, and a ⋯ menu for refresh, block all except shown, unblock all, block all, group by region and clear filters.
+  - Regions as chips and an All / Blocked / Not blocked switch.
+  - Servers as rounded rows: a ping colour bar, city and country, a ping pill (click to ping again) and an **Allowed / Blocked / Partly** pill to click instead of a checkbox; expand a row for single relays.
+- The How to use page describes the new controls.
+
 ## [2.1.1] - 2026-11-03
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

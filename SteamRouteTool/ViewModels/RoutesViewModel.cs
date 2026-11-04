@@ -74,8 +74,6 @@ public sealed partial class RoutesViewModel : ObservableObject
         ApplyGrouping();
         RefreshView();
         OnPropertyChanged(nameof(AutoSelectLabel));
-        OnPropertyChanged(nameof(AutoRouteCountText));
-        OnPropertyChanged(nameof(PresetPlaceholder));
         OnPropertyChanged(nameof(SavePresetLabel));
         OnPropertyChanged(nameof(PresetsTitle));
     }
@@ -143,19 +141,58 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     void NotifySummaryChanged()
     {
-        OnPropertyChanged(nameof(Summary));
         OnPropertyChanged(nameof(BlockedSummary));
         OnPropertyChanged(nameof(HasNoShownRoutes));
         OnPropertyChanged(nameof(AutoSelectPreview));
+        NotifyHeadlineChanged();
         UpdateSelectedPreset();
     }
-
-    public string Summary => Loc.T("Routes.Summary", BlockedCount, Routes.Count, RoutesView.Cast<object>().Count());
 
     /// <summary>E.g. "40 of 45 routes blocked", or empty before the routes have loaded. Shown in the tray icon's tooltip.</summary>
     public string BlockedSummary => Routes.Count == 0 ? "" : Loc.T("Routes.BlockedSummary", BlockedCount, Routes.Count);
 
     int BlockedCount => Routes.Count(route => route.IsBlocked != false);
+
+    /// <summary>Routes with at least one blocked relay, for the headline numbers.</summary>
+    public int BlockedRouteCount => BlockedCount;
+    public int AllowedRouteCount => Routes.Count - BlockedCount;
+
+    // The best known ping of every route that's still (at least partly) allowed, fastest first.
+    List<(Pop Pop, int Ms)> AllowedPings => pops
+        .Where(pop => pop.Relays.Any(relay => !blockedRelays.Contains(relay)))
+        .Select(pop => (Pop: pop, Ms: GetKnownPing(pop)))
+        .Where(route => route.Ms != null)
+        .Select(route => (route.Pop, route.Ms!.Value))
+        .OrderBy(route => route.Value)
+        .ToList();
+
+    /// <summary>The fastest allowed route's ping, e.g. "17 ms", or "–" before any ping is known.</summary>
+    public string BestPingText => AllowedPings.FirstOrDefault() is { Pop: not null } best ? Loc.T("Ping.Ms", best.Ms) : "–";
+
+    /// <summary>The slowest route still allowed: the worst server matchmaking could still pick.</summary>
+    public string WorstPingText => AllowedPings.LastOrDefault() is { Pop: not null } worst ? Loc.T("Ping.Ms", worst.Ms) : "–";
+
+    public PingLevel BestPingLevel => AllowedPings.FirstOrDefault() is { Pop: not null } best ? PingDisplay.LevelOf(best.Ms) : PingLevel.None;
+    public PingLevel WorstPingLevel => AllowedPings.LastOrDefault() is { Pop: not null } worst ? PingDisplay.LevelOf(worst.Ms) : PingLevel.None;
+
+    /// <summary>E.g. "Fastest location you allow: Stockholm - Kista (Sweden)".</summary>
+    public string BestPingTooltip => AllowedPings.FirstOrDefault() is { Pop: not null } best ? Loc.T("Routes.BestPingTooltip", best.Pop.Description) : "";
+    public string WorstPingTooltip => AllowedPings.LastOrDefault() is { Pop: not null } worst ? Loc.T("Routes.WorstPingTooltip", worst.Pop.Description) : "";
+
+    void NotifyHeadlineChanged()
+    {
+        OnPropertyChanged(nameof(BlockedRouteCount));
+        OnPropertyChanged(nameof(AllowedRouteCount));
+        NotifyPingHeadlineChanged();
+    }
+
+    void NotifyPingHeadlineChanged()
+    {
+        foreach (string name in new[] { nameof(BestPingText), nameof(WorstPingText), nameof(BestPingLevel), nameof(WorstPingLevel), nameof(BestPingTooltip), nameof(WorstPingTooltip) })
+        {
+            OnPropertyChanged(name);
+        }
+    }
 
     // ----- Loading -----
 
@@ -290,6 +327,42 @@ public sealed partial class RoutesViewModel : ObservableObject
     partial void OnSearchTextChanged(string value) => RefreshView();
     partial void OnSelectedRegionChanged(string value) => RefreshView();
     partial void OnSelectedStatusChanged(string value) => RefreshView();
+
+    public const string SortRegion = "Region";
+    public const string SortName = "Name";
+    public const string SortPing = "Ping";
+    public const string SortStatus = "Status";
+
+    public IReadOnlyList<LocalizedOption> SortOptions { get; } =
+    [
+        new LocalizedOption(SortRegion, "Routes.SortRegion"),
+        new LocalizedOption(SortName, "Routes.SortName"),
+        new LocalizedOption(SortPing, "Routes.SortPing"),
+        new LocalizedOption(SortStatus, "Routes.SortStatus"),
+    ];
+
+    [ObservableProperty]
+    string selectedSort = SortRegion;
+
+    partial void OnSelectedSortChanged(string value) => ApplySort();
+
+    // Ping order isn't live (rows would jump while pings arrive); picking the sort again re-sorts.
+    void ApplySort()
+    {
+        using (RoutesView.DeferRefresh())
+        {
+            RoutesView.SortDescriptions.Clear();
+            string first = SelectedSort switch
+            {
+                SortName => nameof(RouteViewModel.Name),
+                SortPing => nameof(RouteViewModel.PingSortValue),
+                SortStatus => nameof(RouteViewModel.BlockedSortValue),
+                _ => nameof(RouteViewModel.RegionOrder),
+            };
+            RoutesView.SortDescriptions.Add(new SortDescription(first, ListSortDirection.Ascending));
+            if (first != nameof(RouteViewModel.Name)) { RoutesView.SortDescriptions.Add(new SortDescription(nameof(RouteViewModel.Name), ListSortDirection.Ascending)); }
+        }
+    }
 
     partial void OnGroupByRegionChanged(bool value)
     {
@@ -511,9 +584,6 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     public bool HasPresets => Presets.Count > 0;
 
-    /// <summary>Shown in the preset list when no preset matches what's blocked.</summary>
-    public string PresetPlaceholder => Loc.T(HasPresets ? "Presets.NoPreset" : "Presets.NoPresetsYet");
-
     /// <summary>E.g. "Counter-Strike 2 presets".</summary>
     public string PresetsTitle => Loc.T("Presets.ListTitle", SelectedGame.Name);
 
@@ -563,7 +633,6 @@ public sealed partial class RoutesViewModel : ObservableObject
         Presets.Clear();
         foreach (GamePreset preset in GamePresets) { Presets.Add(new PresetViewModel(this, preset)); }
         OnPropertyChanged(nameof(HasPresets));
-        OnPropertyChanged(nameof(PresetPlaceholder));
         OnPropertyChanged(nameof(SavePresetLabel));
         SavePresetCommand.NotifyCanExecuteChanged();
         PresetMessage = null;
@@ -618,7 +687,6 @@ public sealed partial class RoutesViewModel : ObservableObject
             GamePresets.Add(captured);
             Presets.Add(new PresetViewModel(this, captured));
             OnPropertyChanged(nameof(HasPresets));
-            OnPropertyChanged(nameof(PresetPlaceholder));
             PresetMessage = Loc.T("Presets.Saved", name);
         }
         settingsStore.Save(settings);
@@ -658,7 +726,6 @@ public sealed partial class RoutesViewModel : ObservableObject
         Presets.Remove(preset);
         settingsStore.Save(settings);
         OnPropertyChanged(nameof(HasPresets));
-        OnPropertyChanged(nameof(PresetPlaceholder));
         OnPropertyChanged(nameof(SavePresetLabel));
         PresetMessage = Loc.T("Presets.Deleted", preset.Name);
         UpdateSelectedPreset();
@@ -666,20 +733,19 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     // ----- Auto select -----
 
-    /// <summary>Whether the Auto select options (the arrow next to the button) are open.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoSelectPreview))]
-    bool isAutoSelectOpen;
-
     /// <summary>How many of the fastest routes Auto select keeps.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoSelectPreview), nameof(AutoSelectLabel), nameof(AutoRouteCountText))]
+    [NotifyPropertyChangedFor(nameof(AutoSelectPreview), nameof(AutoSelectLabel))]
     int autoRouteCount;
 
     public string AutoSelectLabel => Loc.T("AutoSelect.Label", AutoRouteCount);
 
-    /// <summary>E.g. "5 routes", next to the slider.</summary>
-    public string AutoRouteCountText => Loc.Plural("AutoSelect.RouteCount", AutoRouteCount);
+    /// <summary>The − / + buttons next to the count: the parameter is the step, e.g. "1" or "-1".</summary>
+    [RelayCommand]
+    void ChangeAutoRouteCount(string step)
+    {
+        AutoRouteCount = Math.Clamp(AutoRouteCount + int.Parse(step, System.Globalization.CultureInfo.InvariantCulture), 1, 20);
+    }
 
     partial void OnAutoRouteCountChanged(int value)
     {
@@ -730,7 +796,6 @@ public sealed partial class RoutesViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanApplyAutoSelect))]
     async Task ApplyAutoSelectAsync()
     {
-        IsAutoSelectOpen = false;
         IReadOnlyList<Pop> kept = GetAutoSelectedRoutes();
         if (kept.Count == 0)
         {
@@ -848,7 +913,8 @@ public sealed partial class RoutesViewModel : ObservableObject
         int? responseTime = quick ? await pingService.PingQuicklyAsync(relay.Address) : await pingService.PingCarefullyAsync(relay.Address);
         pingResults[relay.Address] = responseTime;
         route.Refresh();
-        if (IsAutoSelectOpen) { OnPropertyChanged(nameof(AutoSelectPreview)); }
+        OnPropertyChanged(nameof(AutoSelectPreview));
+        NotifyPingHeadlineChanged();
     }
 
     List<RouteViewModel> OrderShownFirst(IReadOnlyList<RouteViewModel> routes)

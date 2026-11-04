@@ -51,8 +51,8 @@ public partial class LocalizationTests
     [Fact]
     public void Plural_PicksOneOrOther()
     {
-        Assert.Equal("1 route", Loc.Plural("AutoSelect.RouteCount", 1));
-        Assert.Equal("5 routes", Loc.Plural("AutoSelect.RouteCount", 5));
+        Assert.Equal("1 relay", Loc.Plural("Routes.RelayCount", 1));
+        Assert.Equal("5 relays", Loc.Plural("Routes.RelayCount", 5));
     }
 
     [Fact]

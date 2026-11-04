@@ -24,6 +24,13 @@ public sealed partial class RouteViewModel : ObservableObject
     public Pop Pop { get; }
     public IReadOnlyList<RelayViewModel> Relays { get; }
     public string Name => Pop.Description;
+
+    /// <summary>The place without its country, e.g. "Stockholm - Kista" for "Stockholm - Kista (Sweden)".</summary>
+    public string City => Pop.Description.LastIndexOf(" (", StringComparison.Ordinal) is int index and > 0 ? Pop.Description[..index] : Pop.Description;
+
+    /// <summary>The country (or US state) in the description's parentheses, or empty.</summary>
+    public string Country => Pop.Description.LastIndexOf(" (", StringComparison.Ordinal) is int index and > 0 && Pop.Description.EndsWith(')')
+        ? Pop.Description[(index + 2)..^1] : "";
     public string Code => Pop.Code;
     /// <summary>The internal (English) region name, used for filtering.</summary>
     public string Region => Pop.Region;
@@ -31,6 +38,8 @@ public sealed partial class RouteViewModel : ObservableObject
     public string RegionName => RegionClassifier.GetDisplayName(Pop.Region);
     public int RegionOrder { get; }
     public int RelayCount => Pop.Relays.Count;
+    /// <summary>E.g. "4 relays".</summary>
+    public string RelayCountText => Loc.Plural("Routes.RelayCount", RelayCount);
     public bool HasMultipleRelays => Pop.Relays.Count > 1;
 
     /// <summary>Whether each relay is shown as its own row, so relays can be blocked individually.</summary>
@@ -68,6 +77,7 @@ public sealed partial class RouteViewModel : ObservableObject
     public void RefreshTexts()
     {
         OnPropertyChanged(nameof(RegionName));
+        OnPropertyChanged(nameof(RelayCountText));
         foreach (RelayViewModel relay in Relays) { relay.RefreshTexts(); }
         Refresh();
     }
