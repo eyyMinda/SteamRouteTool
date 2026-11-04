@@ -19,7 +19,9 @@ Requirements:
 
 - Windows 10 or 11 (x64).
 - Administrator rights: Windows asks when the app starts, because it creates firewall rules.
-- The exe isn't code-signed yet, so SmartScreen may warn the first time: choose **More info**, then **Run anyway**. You can verify the download against `SHA256SUMS.txt`.
+- Code signing is provided by SignPath Foundation (see [Code signing policy](#code-signing-policy)). Until it's active, the exe is unsigned and SmartScreen may warn the first time: choose **More info**, then **Run anyway**. You can always verify the download against `SHA256SUMS.txt`.
+
+The app collects no data; see [Privacy](#privacy).
 
 ## Features
 
@@ -95,6 +97,28 @@ To fix a translation, edit its file and open a pull request. To add a language, 
 ## Releases
 
 Pushing a tag that matches the version in `SteamRouteTool/SteamRouteTool.csproj` (e.g. `v2.0.0`) publishes a self-contained `SteamRouteTool-<version>-win-x64.exe` to [GitHub Releases](../../releases), with `SHA256SUMS.txt` and the matching `CHANGELOG.md` section as release notes. 1.x fixes are released from the `release/1.x` branch.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+- Releases are built and signed only by GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) from the source in this repository. Nothing built on a personal machine is signed.
+- Committers and reviewers: [eyyMinda](https://github.com/eyyMinda)
+- Approvers: [eyyMinda](https://github.com/eyyMinda)
+
+Every signing request is approved manually by an approver. Signed exes are listed with their SHA-256 in each release's `SHA256SUMS.txt`.
+
+## Privacy
+
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+
+Steam Route Tool has no accounts, analytics or telemetry. It only connects to:
+
+- **Steam** (`api.steampowered.com`) to download the public relay list for the selected game.
+- **GitHub** (`api.github.com`, `github.com`) to check for updates at startup and once a day (can be turned off in Settings), and to download an update when you click **Update now**.
+- **Valve's relays** to measure their ping.
+
+These requests send nothing about you beyond what any connection does (your IP address and the app's version in the user agent). Settings, game profiles and cached pings stay on your PC in `%LOCALAPPDATA%\SteamRouteTool`.
 
 ## Credits
 

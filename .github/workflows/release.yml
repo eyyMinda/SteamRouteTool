@@ -90,6 +90,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          SIGNED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
         run: |
           New-Item -ItemType Directory release | Out-Null
           $exe = "SteamRouteTool-$env:VERSION-win-x64.exe"
@@ -115,6 +116,12 @@ jobs:
             if ($include) { $sections.Add($line) }
           }
           if (-not ($sections | Where-Object { $_ -like "## ``[$env:VERSION``]*" })) { throw "CHANGELOG.md has no section for $env:VERSION." }
+          $policy = "https://github.com/eyyMinda/SteamRouteTool#code-signing-policy"
+          $signing = if ($env:SIGNED -eq 'true') {
+            "Free code signing provided by SignPath.io, certificate by SignPath Foundation ([code signing policy]($policy)). Verify downloads against ``SHA256SUMS.txt``."
+          } else {
+            "Windows may show a SmartScreen warning for these unsigned exes; choose **More info**, then **Run anyway**. Code signing by SignPath Foundation is being set up ([code signing policy]($policy)). Verify downloads against ``SHA256SUMS.txt``."
+          }
           $notes = @($sections) + @(
             "",
             "---",
@@ -122,7 +129,7 @@ jobs:
             "- ``$exe``: works on any Windows 10/11 PC, no .NET install needed.",
             "- ``$smallExe``: about 1 MB, for PCs with the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (Windows offers to download it if it's missing).",
             "",
-            "Windows may show a SmartScreen warning for these unsigned exes; choose **More info**, then **Run anyway**. Verify downloads against ``SHA256SUMS.txt``."
+            $signing
           )
           Set-Content notes.md $notes -Encoding utf8
 
