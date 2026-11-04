@@ -5,7 +5,7 @@
   <!-- Grouped like Windows Settings: a heading per group, one row per setting (icon, title, short description, control).
        The longer explanation of a setting is its row's tooltip; the How to use page has the full story. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+    <StackPanel MaxWidth="1024" HorizontalAlignment="Center">
       <StackPanel.Resources>
         <Style x:Key="RowIcon" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
           <Setter Property="FontSize" Value="18" />

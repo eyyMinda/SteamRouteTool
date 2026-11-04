@@ -47,6 +47,7 @@
   "Routes.Restored": "Przywrócono wcześniej zablokowane trasy.",
   "Routes.Presets": "Zestawy",
   "Routes.SavePresetChip": "Zapisz obecny",
+  "Routes.NoPresetsHint": "Nie ma jeszcze zestawów: zablokuj wybrane trasy, a potem je zapisz.",
   "Routes.StatBlocked": "zablokowane",
   "Routes.StatAllowed": "dozwolone",
   "Routes.StatBestPing": "najlepszy ping",

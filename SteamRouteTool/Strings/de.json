@@ -47,6 +47,7 @@
   "Routes.Restored": "Die zuvor blockierten Routen wurden wiederhergestellt.",
   "Routes.Presets": "Presets",
   "Routes.SavePresetChip": "Aktuelle speichern",
+  "Routes.NoPresetsHint": "Noch keine Presets: Blockiere die gewünschten Routen und speichere sie dann.",
   "Routes.StatBlocked": "blockiert",
   "Routes.StatAllowed": "erlaubt",
   "Routes.StatBestPing": "bester Ping",

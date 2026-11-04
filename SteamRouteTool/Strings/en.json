@@ -50,6 +50,7 @@
   "Routes.WorstPingTooltip": "Slowest location you still allow: {0}. Block it if it's too far.",
   "Routes.Presets": "Presets",
   "Routes.SavePresetChip": "Save current",
+  "Routes.NoPresetsHint": "No presets yet: block the routes you want, then save them.",
   "Routes.StatBlocked": "blocked",
   "Routes.StatAllowed": "allowed",
   "Routes.StatBestPing": "best ping",

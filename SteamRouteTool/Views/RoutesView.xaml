@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="clr-namespace:SteamRouteTool.Localization"
              xmlns:routes="clr-namespace:SteamRouteTool.Views.Routes"
-             xmlns:services="clr-namespace:SteamRouteTool.Services">
+             xmlns:services="clr-namespace:SteamRouteTool.Services"
+             SizeChanged="RoutesView_SizeChanged">
   <!-- Game tabs and headline numbers, then presets beside Auto select, then filters and the server rows. -->
   <UserControl.Resources>
     <!-- A headline ping, coloured like the ping pills (Tag = its PingLevel). -->
@@ -31,7 +32,7 @@
     </Grid.RowDefinitions>
 
     <DockPanel Margin="0,0,0,14">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
         <StackPanel Margin="0,0,24,0">
           <TextBlock Text="{Binding BlockedRouteCount}" Style="{StaticResource BigNumber}" Foreground="{DynamicResource PingPoorBrush}" />
           <TextBlock Text="{l:Tr Routes.StatBlocked}" Style="{StaticResource SecondaryText}" />
@@ -49,11 +50,69 @@
           <TextBlock Text="{l:Tr Routes.StatWorstPing}" Style="{StaticResource SecondaryText}" />
         </StackPanel>
       </StackPanel>
-      <ListBox Style="{StaticResource GameTabs}" ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}" VerticalAlignment="Center"
-               AutomationProperties.Name="Game" />
+      <!-- Scrolls sideways when the window is too narrow for every game (also with the mouse wheel). -->
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center"
+                    PreviewMouseWheel="GameTabs_PreviewMouseWheel">
+        <ListBox Style="{StaticResource GameTabs}" ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}"
+                 AutomationProperties.Name="Game" />
+      </ScrollViewer>
     </DockPanel>
 
-    <Grid Grid.Row="1" Margin="0,0,0,16">
+    <!-- Compact (small window): presets on one scrollable line, Auto select as a slim pill. -->
+    <Grid Grid.Row="1" Margin="0,0,0,12" Style="{StaticResource CompactOnly}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="10" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <Grid>
+        <Border Style="{StaticResource HeroCard}" />
+        <Border Style="{StaticResource AccentWash}" />
+        <DockPanel Margin="12,8">
+          <TextBlock DockPanel.Dock="Left" Text="{l:Tr Routes.Presets}" Style="{StaticResource Overline}" Margin="0,0,12,0" VerticalAlignment="Center" />
+          <routes:PresetsManager DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Center" />
+          <TextBlock DockPanel.Dock="Left" Text="{l:Tr Routes.NoPresetsHint}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                     Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center"
+                        PreviewMouseWheel="GameTabs_PreviewMouseWheel">
+            <ListBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name"
+                     IsEnabled="{Binding CanChangeRules}" AutomationProperties.Name="Preset">
+              <ListBox.Style>
+                <Style TargetType="ListBox" BasedOn="{StaticResource Chips}">
+                  <Setter Property="ItemsPanel">
+                    <Setter.Value>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                      </ItemsPanelTemplate>
+                    </Setter.Value>
+                  </Setter>
+                </Style>
+              </ListBox.Style>
+              <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource Chip}">
+                  <Setter Property="Margin" Value="0,0,8,0" />
+                </Style>
+              </ListBox.ItemContainerStyle>
+            </ListBox>
+          </ScrollViewer>
+        </DockPanel>
+      </Grid>
+      <Border Grid.Column="2" Style="{StaticResource AutoCard}" Padding="10,6" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="&#xE945;" Style="{StaticResource Icon}" FontSize="15" Margin="0,0,6,0" />
+          <Button Content="−" Style="{StaticResource AutoStep}" Command="{Binding ChangeAutoRouteCountCommand}" CommandParameter="-1"
+                  AutomationProperties.Name="Fewer routes" />
+          <TextBlock Text="{Binding AutoRouteCount}" FontSize="15" FontWeight="Bold" MinWidth="24" TextAlignment="Center" VerticalAlignment="Center" />
+          <Button Content="+" Style="{StaticResource AutoStep}" Command="{Binding ChangeAutoRouteCountCommand}" CommandParameter="1" Margin="0,0,8,0"
+                  AutomationProperties.Name="More routes" />
+          <Button Content="{l:Tr AutoSelect.Button}" Command="{Binding ApplyAutoSelectCommand}" Style="{StaticResource AutoApply}"
+                  ToolTip="{Binding AutoSelectPreview}" AutomationProperties.Name="Auto select" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="1" Margin="0,0,0,16" Style="{StaticResource FullOnly}">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="16" />
@@ -68,7 +127,7 @@
                    IsEnabled="{Binding CanChangeRules}" AutomationProperties.Name="Preset" />
           <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
             <routes:PresetsManager />
-            <TextBlock Text="{l:Tr Presets.Empty}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="12,0,0,0"
+            <TextBlock Text="{l:Tr Routes.NoPresetsHint}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="12,0,0,0"
                        Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
           </StackPanel>
         </StackPanel>

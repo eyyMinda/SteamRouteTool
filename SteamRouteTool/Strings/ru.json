@@ -47,6 +47,7 @@
   "Routes.Restored": "Восстановлены маршруты, которые были заблокированы раньше.",
   "Routes.Presets": "Пресеты",
   "Routes.SavePresetChip": "Сохранить текущее",
+  "Routes.NoPresetsHint": "Пресетов пока нет: заблокируйте нужные маршруты и сохраните их.",
   "Routes.StatBlocked": "заблокировано",
   "Routes.StatAllowed": "разрешено",
   "Routes.StatBestPing": "лучший пинг",

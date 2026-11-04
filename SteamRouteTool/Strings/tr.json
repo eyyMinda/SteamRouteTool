@@ -47,6 +47,7 @@
   "Routes.Restored": "Daha önce engelli olan rotalar geri yüklendi.",
   "Routes.Presets": "Ön ayarlar",
   "Routes.SavePresetChip": "Mevcut durumu kaydet",
+  "Routes.NoPresetsHint": "Henüz ön ayar yok: istediğiniz rotaları engelleyip kaydedin.",
   "Routes.StatBlocked": "engelli",
   "Routes.StatAllowed": "izinli",
   "Routes.StatBestPing": "en iyi ping",

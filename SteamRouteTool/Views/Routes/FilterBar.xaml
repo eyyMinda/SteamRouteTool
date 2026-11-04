@@ -1,7 +1,8 @@
 <UserControl x:Class="SteamRouteTool.Views.Routes.FilterBar"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="clr-namespace:SteamRouteTool.Localization">
+             xmlns:l="clr-namespace:SteamRouteTool.Localization"
+             xmlns:views="clr-namespace:SteamRouteTool.Views">
   <!-- Search, sort, Ping all and the rarer actions (menu); then the region chips and the status filter. -->
   <StackPanel>
     <DockPanel Margin="0,0,0,10">
@@ -58,8 +59,13 @@
       <ListBox DockPanel.Dock="Right" Style="{StaticResource Segmented}" ItemsSource="{Binding StatusOptions}" SelectedValuePath="Key"
                DisplayMemberPath="Text" SelectedValue="{Binding SelectedStatus}" VerticalAlignment="Top" Margin="10,0,0,8"
                AutomationProperties.Name="Status" />
+      <ComboBox Visibility="{Binding (views:Responsive.IsCompact), RelativeSource={RelativeSource Self}, Converter={StaticResource VisibleWhen}}"
+                ItemsSource="{Binding RegionOptions}" SelectedValuePath="Key" DisplayMemberPath="Text"
+                SelectedValue="{Binding SelectedRegion}" Width="170" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,8"
+                AutomationProperties.Name="Region" />
       <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding RegionOptions}" SelectedValuePath="Key" DisplayMemberPath="Text"
-               SelectedValue="{Binding SelectedRegion}" AutomationProperties.Name="Region" />
+               SelectedValue="{Binding SelectedRegion}" AutomationProperties.Name="Region"
+               Visibility="{Binding (views:Responsive.IsCompact), RelativeSource={RelativeSource Self}, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
     </DockPanel>
   </StackPanel>
 </UserControl>

@@ -5,7 +5,7 @@
   <!-- Quick start as four step cards, then the details as collapsed sections. The texts are in Strings/<language>.json;
        **double asterisks** there mark bold words. -->
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+    <StackPanel MaxWidth="1024" HorizontalAlignment="Center">
       <StackPanel.Resources>
         <Style x:Key="StepNumber" TargetType="Border">
           <Setter Property="Width" Value="28" />

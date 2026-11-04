@@ -4,7 +4,7 @@
              xmlns:l="clr-namespace:SteamRouteTool.Localization"
              xmlns:services="clr-namespace:SteamRouteTool.Services">
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+    <StackPanel MaxWidth="1024" HorizontalAlignment="Center">
       <TextBlock Text="{l:Tr About.Title}" Style="{StaticResource PageTitle}" Margin="0,0,0,16" />
 
       <Border Style="{StaticResource Card}">
