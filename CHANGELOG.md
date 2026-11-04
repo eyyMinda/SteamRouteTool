@@ -3,6 +3,14 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.2.1] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Changed
+
+- Updated credits.
+
 ## [2.2.0] - 2026-11-04
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
