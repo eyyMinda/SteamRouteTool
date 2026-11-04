@@ -1,6 +1,27 @@
 <UserControl x:Class="SteamRouteTool.Views.RoutesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:SteamRouteTool.Localization"
+             xmlns:routes="clr-namespace:SteamRouteTool.Views.Routes"
+             xmlns:services="clr-namespace:SteamRouteTool.Services"
+             SizeChanged="RoutesView_SizeChanged">
+  <!-- Game tabs and headline numbers, then presets beside Auto select, then filters and the server rows. -->
+  <UserControl.Resources>
+    <!-- A headline ping, coloured like the ping pills (Tag = its PingLevel). -->
+    <Style x:Key="PingNumber" TargetType="TextBlock" BasedOn="{StaticResource BigNumber}">
+      <Style.Triggers>
+        <Trigger Property="Tag" Value="{x:Static services:PingLevel.Good}">
+          <Setter Property="Foreground" Value="{DynamicResource PingGoodBrush}" />
+        </Trigger>
+        <Trigger Property="Tag" Value="{x:Static services:PingLevel.Fair}">
+          <Setter Property="Foreground" Value="{DynamicResource PingFairBrush}" />
+        </Trigger>
+        <Trigger Property="Tag" Value="{x:Static services:PingLevel.Poor}">
+          <Setter Property="Foreground" Value="{DynamicResource PingPoorBrush}" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
@@ -10,265 +31,105 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
-    <!-- Title and game -->
-    <DockPanel Grid.Row="0" Margin="0,0,0,16">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
-        <TextBlock Text="Game" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,10,0" />
-        <ComboBox ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}" DisplayMemberPath="Name" Width="220"
-                  AutomationProperties.Name="Game" ToolTip="Each game keeps its own saved set of blocked routes" />
+    <DockPanel x:Name="Header" Margin="0,0,0,14" SizeChanged="Header_SizeChanged">
+      <StackPanel x:Name="StatsPanel" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0"
+                  SizeChanged="Header_SizeChanged">
+        <StackPanel Margin="0,0,24,0">
+          <TextBlock Text="{Binding BlockedRouteCount}" Style="{StaticResource BigNumber}" Foreground="{DynamicResource PingPoorBrush}" />
+          <TextBlock Text="{l:Tr Routes.StatBlocked}" Style="{StaticResource SecondaryText}" />
+        </StackPanel>
+        <StackPanel Margin="0,0,24,0">
+          <TextBlock Text="{Binding AllowedRouteCount}" Style="{StaticResource BigNumber}" Foreground="{DynamicResource PingGoodBrush}" />
+          <TextBlock Text="{l:Tr Routes.StatAllowed}" Style="{StaticResource SecondaryText}" />
+        </StackPanel>
+        <StackPanel ToolTip="{Binding BestPingTooltip}" Margin="0,0,24,0">
+          <TextBlock Text="{Binding BestPingText}" Tag="{Binding BestPingLevel}" Style="{StaticResource PingNumber}" />
+          <TextBlock Text="{l:Tr Routes.StatBestPing}" Style="{StaticResource SecondaryText}" />
+        </StackPanel>
+        <StackPanel ToolTip="{Binding WorstPingTooltip}">
+          <TextBlock Text="{Binding WorstPingText}" Tag="{Binding WorstPingLevel}" Style="{StaticResource PingNumber}" />
+          <TextBlock Text="{l:Tr Routes.StatWorstPing}" Style="{StaticResource SecondaryText}" />
+        </StackPanel>
       </StackPanel>
-      <StackPanel>
-        <TextBlock Text="Routes" Style="{StaticResource PageTitle}" />
-        <TextBlock Text="{Binding Summary}" Style="{StaticResource SecondaryText}" Margin="0,2,0,0" />
-      </StackPanel>
+      <!-- The game tabs while they fit beside the numbers; a dropdown when they don't (see Header_SizeChanged). -->
+      <Grid VerticalAlignment="Center">
+        <ListBox x:Name="GameTabsList" Style="{StaticResource GameTabs}" ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}"
+                 AutomationProperties.Name="Game" />
+        <ComboBox x:Name="GamePicker" ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}" DisplayMemberPath="Name"
+                  FontSize="15" FontWeight="SemiBold" MinWidth="190" HorizontalAlignment="Left" Visibility="Collapsed"
+                  AutomationProperties.Name="Game" />
+      </Grid>
     </DockPanel>
 
-    <!-- Filters -->
-    <Grid Grid.Row="1" Margin="0,0,0,10">
+    <!-- Compact (small window): presets as a dropdown, Auto select as a slim pill. -->
+    <Grid Grid.Row="1" Margin="0,0,0,12" Style="{StaticResource CompactOnly}">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" MinWidth="200" />
-        <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="10" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-      <Grid Grid.Column="0">
-        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="34,6,8,6" VerticalContentAlignment="Center"
-                 AutomationProperties.Name="Search routes" />
-        <TextBlock Text="&#xE721;" Style="{StaticResource Icon}" FontSize="14" Margin="12,0,0,0" IsHitTestVisible="False"
-                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-        <TextBlock Text="Search by name, code or region" Margin="36,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                   Visibility="{Binding SearchText, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+      <Grid>
+        <Border Style="{StaticResource HeroCard}" />
+        <Border Style="{StaticResource AccentWash}" />
+        <DockPanel Margin="12,8">
+          <TextBlock DockPanel.Dock="Left" Text="{l:Tr Routes.Presets}" Style="{StaticResource Overline}" Margin="0,0,12,0" VerticalAlignment="Center" />
+          <routes:PresetsManager DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+          <TextBlock DockPanel.Dock="Left" Text="{l:Tr Routes.NoPresetsHint}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                     Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+          <Grid VerticalAlignment="Center" Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}}">
+            <!-- Up to 260 px, shrinking with the window. -->
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" MaxWidth="260" />
+              <ColumnDefinition Width="0" />
+            </Grid.ColumnDefinitions>
+            <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name"
+                      IsEnabled="{Binding CanChangeRules}" AutomationProperties.Name="Preset" />
+            <TextBlock Text="{l:Tr Routes.PickPreset}" Margin="12,0,36,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       Visibility="{Binding SelectedPreset, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+          </Grid>
+        </DockPanel>
       </Grid>
-      <ComboBox Grid.Column="1" ItemsSource="{Binding RegionOptions}" SelectedItem="{Binding SelectedRegion}" Width="160" Margin="10,0,0,0"
-                AutomationProperties.Name="Region" />
-      <ComboBox Grid.Column="2" ItemsSource="{Binding StatusOptions}" SelectedItem="{Binding SelectedStatus}" Width="140" Margin="10,0,0,0"
-                AutomationProperties.Name="Status" />
-      <CheckBox Grid.Column="3" Content="Group by region" IsChecked="{Binding GroupByRegion}" Margin="14,0,0,0" VerticalAlignment="Center" />
-      <Button Grid.Column="4" Content="Clear filters" Command="{Binding ClearFiltersCommand}" Margin="10,0,0,0" />
+      <Border Grid.Column="2" Style="{StaticResource AutoCard}" Padding="10,6" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="&#xE945;" Style="{StaticResource Icon}" FontSize="15" Margin="0,0,6,0" />
+          <Button Content="−" Style="{StaticResource AutoStep}" Command="{Binding ChangeAutoRouteCountCommand}" CommandParameter="-1"
+                  AutomationProperties.Name="Fewer routes" />
+          <TextBlock Text="{Binding AutoRouteCount}" FontSize="15" FontWeight="Bold" MinWidth="24" TextAlignment="Center" VerticalAlignment="Center" />
+          <Button Content="+" Style="{StaticResource AutoStep}" Command="{Binding ChangeAutoRouteCountCommand}" CommandParameter="1" Margin="0,0,8,0"
+                  AutomationProperties.Name="More routes" />
+          <Button Content="{l:Tr AutoSelect.Button}" Command="{Binding ApplyAutoSelectCommand}" Style="{StaticResource AutoApply}"
+                  ToolTip="{Binding AutoSelectPreview}" AutomationProperties.Name="Auto select" />
+        </StackPanel>
+      </Border>
     </Grid>
 
-    <!-- Actions; Auto select is the prominent one, on the right -->
-    <DockPanel Grid.Row="2" Margin="0,0,0,4">
-      <StackPanel x:Name="AutoSelectSplit" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="16,0,0,6">
-        <Button Command="{Binding ApplyAutoSelectCommand}" Style="{StaticResource AutoSelectButton}"
-                ToolTip="Keep only the fastest routes by ping and block all others" AutomationProperties.Name="Auto select">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xE945;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-            <TextBlock Text="Auto select" />
-            <TextBlock Text="{Binding AutoSelectLabel, StringFormat=' · {0}'}" FontWeight="Normal" />
-          </StackPanel>
-        </Button>
-        <ToggleButton IsChecked="{Binding IsAutoSelectOpen}" Style="{StaticResource AutoSelectArrow}"
-                      ToolTip="Choose how many routes to keep" AutomationProperties.Name="Auto select options" />
-      </StackPanel>
-      <Popup x:Name="AutoSelectPopup" IsOpen="{Binding IsAutoSelectOpen}" PlacementTarget="{Binding ElementName=AutoSelectSplit}" Placement="Custom"
-             StaysOpen="False" AllowsTransparency="True">
-        <Border Width="380" Padding="16" CornerRadius="8" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-          <StackPanel>
-            <TextBlock Text="Auto select" FontWeight="SemiBold" />
-            <TextBlock Text="Keeps the fastest routes by their best known ping and blocks every other route."
-                       Style="{StaticResource SecondaryText}" />
-            <DockPanel Margin="0,12,0,0">
-              <TextBlock DockPanel.Dock="Right" Text="{Binding AutoRouteCount, StringFormat='{}{0} routes'}" Width="70"
-                         TextAlignment="Right" VerticalAlignment="Center" />
-              <TextBlock DockPanel.Dock="Left" Text="Keep the fastest" VerticalAlignment="Center" Margin="0,0,12,0" />
-              <Slider Minimum="1" Maximum="20" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                      Value="{Binding AutoRouteCount, Delay=200}" AutomationProperties.Name="Routes to keep" />
-            </DockPanel>
-            <TextBlock Text="{Binding AutoSelectPreview}" TextWrapping="Wrap" Margin="0,12,0,0" />
-            <Button Content="Apply" Style="{StaticResource AutoSelectButton}" Tag="4" Command="{Binding ApplyAutoSelectCommand}"
-                    HorizontalAlignment="Right" Margin="0,12,0,0" AutomationProperties.Name="Apply auto select" />
-          </StackPanel>
-        </Border>
-      </Popup>
-      <WrapPanel>
-        <Button Command="{Binding PingAllCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,6"
-                ToolTip="Ping every route again">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xE9D9;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-            <TextBlock Text="Ping all" />
-          </StackPanel>
-        </Button>
-        <Button Command="{Binding RefreshCommand}" Margin="0,0,12,6" ToolTip="Reload the route list from Steam and re-read the firewall rules">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-            <TextBlock Text="Refresh routes" />
-          </StackPanel>
-        </Button>
-        <Button Command="{Binding BlockAllExceptShownCommand}" Margin="0,0,8,6"
-                ToolTip="Keep only the routes the search and filters show (e.g. one region) and block all others">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xE71C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-            <TextBlock Text="Block all except shown" />
-          </StackPanel>
-        </Button>
-        <Button Command="{Binding UnblockAllCommand}" Margin="0,0,8,6" ToolTip="Unblock every route and remove all of the tool's firewall rules">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xE785;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-            <TextBlock Text="Unblock all" />
-          </StackPanel>
-        </Button>
-        <Button Command="{Binding BlockAllCommand}" Margin="0,0,8,6" ToolTip="Block every route">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" />
-            <TextBlock Text="Block all" />
-          </StackPanel>
-        </Button>
-      </WrapPanel>
-    </DockPanel>
-
-    <!-- Progress and messages -->
-    <StackPanel Grid.Row="3">
-      <ProgressBar IsIndeterminate="True" Height="3" Margin="0,0,0,6"
-                   Visibility="{Binding IsBusy, Converter={StaticResource VisibleWhen}}" />
-      <Border Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-              BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
-              Visibility="{Binding ErrorMessage, Converter={StaticResource VisibleWhen}}">
-        <DockPanel>
-          <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissMessagesCommand}" Margin="8,0,0,0" VerticalAlignment="Center" />
-          <Button DockPanel.Dock="Right" Content="Retry" Command="{Binding RefreshCommand}" Margin="8,0,0,0" VerticalAlignment="Center" />
-          <TextBlock Text="&#xEA39;" Style="{StaticResource Icon}" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Margin="0,0,10,0" />
-          <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
-        </DockPanel>
-      </Border>
-      <Border Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-              BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
-              Visibility="{Binding StatusMessage, Converter={StaticResource VisibleWhen}}">
-        <DockPanel>
-          <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissMessagesCommand}" Margin="8,0,0,0" VerticalAlignment="Center" />
-          <Button DockPanel.Dock="Right" Content="Undo" Command="{Binding UndoAutoSelectCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
-                  Visibility="{Binding CanUndoAutoSelect, Converter={StaticResource VisibleWhen}}" AutomationProperties.Name="Undo auto select" />
-          <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,10,0" />
-          <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
-        </DockPanel>
-      </Border>
-    </StackPanel>
-
-    <!-- Route list -->
-    <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0" Margin="0">
+    <Grid Grid.Row="1" Margin="0,0,0,16" Style="{StaticResource FullOnly}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="16" />
+        <ColumnDefinition Width="320" />
+      </Grid.ColumnDefinitions>
       <Grid>
-        <DataGrid x:Name="RoutesGrid" ItemsSource="{Binding RoutesView}" AutoGenerateColumns="False" IsReadOnly="True"
-                  CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" CanUserResizeRows="False"
-                  HeadersVisibility="Column" GridLinesVisibility="None" SelectionMode="Single" SelectionUnit="FullRow"
-                  BorderThickness="0" Background="Transparent" RowDetailsVisibilityMode="Collapsed"
-                  VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.ScrollUnit="Pixel"
-                  LoadingRow="RoutesGrid_LoadingRow" SizeChanged="RoutesGrid_SizeChanged" AutomationProperties.Name="Routes">
-          <DataGrid.GroupStyle>
-            <GroupStyle>
-              <GroupStyle.HeaderTemplate>
-                <DataTemplate>
-                  <TextBlock Margin="16,14,0,4" FontWeight="SemiBold">
-                    <Run Text="{Binding Name, Mode=OneWay}" />
-                    <Run Text="{Binding ItemCount, Mode=OneWay, StringFormat='· {0}'}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                  </TextBlock>
-                </DataTemplate>
-              </GroupStyle.HeaderTemplate>
-            </GroupStyle>
-          </DataGrid.GroupStyle>
-
-          <DataGrid.Columns>
-            <DataGridTemplateColumn Width="40" MinWidth="40" CanUserSort="False">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
-                  <ToggleButton IsChecked="{Binding IsExpanded, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExpandToggle}"
-                                Visibility="{Binding HasMultipleRelays, Converter={StaticResource VisibleWhen}}"
-                                ToolTip="Show this route's relays to block them individually" AutomationProperties.Name="Show relays" />
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-
-            <!-- Sized to fill the remaining width in code-behind: a "*" width squeezes the other columns when rows are grouped. -->
-            <DataGridTemplateColumn x:Name="RouteColumn" Header="Route" Width="220" MinWidth="220" SortMemberPath="Name">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
-                  <StackPanel Margin="0,6" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="12">
-                      <Run Text="{Binding Code, Mode=OneWay}" />
-                      <Run Text="{Binding BlockedDetail, Mode=OneWay}" />
-                    </TextBlock>
-                  </StackPanel>
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-
-            <DataGridTemplateColumn Header="Region" Width="140" MinWidth="140" SortMemberPath="RegionOrder">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
-                  <TextBlock Text="{Binding Region}" VerticalAlignment="Center" />
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-
-            <DataGridTemplateColumn Header="Relays" Width="80" MinWidth="80" SortMemberPath="RelayCount">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
-                  <TextBlock Text="{Binding RelayCount}" VerticalAlignment="Center" />
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-
-            <DataGridTemplateColumn Header="Ping" Width="110" MinWidth="110" SortMemberPath="PingSortValue">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
-                  <Button Command="{Binding PingAgainCommand}" Style="{StaticResource PingButton}" VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource PingText}" />
-                  </Button>
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-
-            <DataGridTemplateColumn Header="Blocked" Width="90" MinWidth="90" SortMemberPath="BlockedSortValue">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
-                  <CheckBox IsChecked="{Binding IsBlocked, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"
-                            IsEnabled="{Binding DataContext.CanChangeRules, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                            ToolTip="Block this route in Windows Firewall" AutomationProperties.Name="Block route" />
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-          </DataGrid.Columns>
-
-          <!-- Relays of an expanded route; the last two columns line up with Ping and Blocked. -->
-          <DataGrid.RowDetailsTemplate>
-            <DataTemplate>
-              <ItemsControl ItemsSource="{Binding Relays}" Margin="40,0,0,8">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Grid Margin="0,1">
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="90" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="110" />
-                        <ColumnDefinition Width="90" />
-                      </Grid.ColumnDefinitions>
-                      <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" />
-                      <TextBlock Grid.Column="1" Text="{Binding Endpoint}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" />
-                      <Button Grid.Column="2" Command="{Binding PingAgainCommand}" Style="{StaticResource PingButton}">
-                        <TextBlock Style="{StaticResource PingText}" />
-                      </Button>
-                      <CheckBox Grid.Column="3" IsChecked="{Binding IsBlocked, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"
-                                IsEnabled="{Binding DataContext.CanChangeRules, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                ToolTip="Block only this relay" AutomationProperties.Name="Block relay" />
-                    </Grid>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </DataTemplate>
-          </DataGrid.RowDetailsTemplate>
-        </DataGrid>
-
-        <!-- Empty state when the filters hide everything -->
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Visibility="{Binding HasNoShownRoutes, Converter={StaticResource VisibleWhen}}">
-          <TextBlock Text="No routes match your search and filters." Style="{StaticResource SecondaryText}" HorizontalAlignment="Center" />
-          <Button Content="Clear filters" Command="{Binding ClearFiltersCommand}" HorizontalAlignment="Center" Margin="0,10,0,0" />
+        <Border Style="{StaticResource HeroCard}" />
+        <Border Style="{StaticResource AccentWash}" />
+        <StackPanel Margin="18,14,18,6">
+          <TextBlock Text="{l:Tr Routes.Presets}" Style="{StaticResource Overline}" />
+          <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name"
+                   IsEnabled="{Binding CanChangeRules}" AutomationProperties.Name="Preset" />
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <routes:PresetsManager />
+            <TextBlock Text="{l:Tr Routes.NoPresetsHint}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+          </StackPanel>
         </StackPanel>
       </Grid>
-    </Border>
+      <routes:AutoSelectCard Grid.Column="2" />
+    </Grid>
+
+    <routes:FilterBar Grid.Row="2" Margin="0,0,0,4" />
+    <routes:Banners Grid.Row="3" />
+    <routes:RouteList Grid.Row="4" />
   </Grid>
 </UserControl>

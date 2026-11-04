@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Services;
 using SteamRouteTool.ViewModels;
 
@@ -43,13 +45,16 @@ public partial class App : Application
 
         SettingsStore settingsStore = new SettingsStore(Path.Combine(SettingsStore.DefaultDirectory, "settings.json"));
         AppSettings settings = settingsStore.Load();
+        Loc.Instance.SetLanguage(settings.Language);
         AppTheme.Apply(settings.Theme);
         AppTheme.FollowSystemChanges();
 
         RoutesViewModel routes = new RoutesViewModel(new SdrConfigClient(httpClient), new FirewallService(), new PingService(),
             new PingCache(PingCache.DefaultPath), settingsStore, settings);
-        SettingsViewModel settingsViewModel = new SettingsViewModel(settingsStore, settings);
-        MainViewModel main = new MainViewModel(routes, settingsViewModel, new AboutViewModel(new UpdateChecker(httpClient)));
+        UpdatesViewModel updates = new UpdatesViewModel(new UpdateChecker(httpClient), settingsStore, settings, InstallAndRestart);
+        SettingsViewModel settingsViewModel = new SettingsViewModel(settingsStore, settings, updates);
+        settingsViewModel.BlockNewRoutesChanged += routes.OnBlockNewRoutesChanged;
+        MainViewModel main = new MainViewModel(routes, settingsViewModel, new AboutViewModel(), updates);
 
         MainWindow window = new MainWindow() { DataContext = main };
         // Closing covers the close button and Alt+F4; SessionEnding covers signing out and shutting down.
@@ -62,18 +67,51 @@ public partial class App : Application
             routes.SavePingCache();
             if (settings.UnblockOnExit) { routes.RemoveRulesOnExit(); }
         }
-        window.Closing += (sender, args) => CleanUp();
-        SessionEnding += (sender, args) => CleanUp();
+        // With "close to tray", the close button (and Alt+F4) hides the window; the app really exits from the tray menu,
+        // when Windows signs out or shuts down, and when an update restarts it.
+        window.Closing += (sender, args) =>
+        {
+            if (settings.CloseToTray && !exiting && trayIcon != null)
+            {
+                args.Cancel = true;
+                trayIcon.HideToTray();
+                return;
+            }
+            CleanUp();
+        };
+        window.Activated += (sender, args) => _ = routes.CheckFirewallAsync();
+        SessionEnding += (sender, args) =>
+        {
+            exiting = true;
+            CleanUp();
+        };
+        cleanUp = CleanUp;
         MainWindow = window;
 
         // Exit from the tray menu also works while the window has never been shown.
-        TrayIcon tray = new TrayIcon(window, routes, settingsViewModel, settingsStore, settings, () =>
+        TrayIcon tray = new TrayIcon(window, routes, settingsViewModel, settingsStore, settings, () => main.SelectedPage = main.Pages[2], () =>
         {
+            exiting = true;
             CleanUp();
             Shutdown();
         });
+        trayIcon = tray;
+
+        // Apply the chosen preset when a game starts (the app usually waits in the tray for this).
+        GameWatcher watcher = new GameWatcher();
+        watcher.GameStarted += game => Dispatcher.BeginInvoke(async () =>
+        {
+            string? applied = await routes.ApplyPresetForStartedGameAsync(game);
+            if (applied != null && !window.IsVisible) { tray.ShowNotification(game.Name, applied); }
+        });
+        Exit += (sender, args) => watcher.Dispose();
         Exit += (sender, args) => tray.Dispose();
         ListenForShowRequests(tray);
+        // In the tray, a new version is announced with a notification; with the window open, the sidebar shows it.
+        updates.UpdateFound += release =>
+        {
+            if (!window.IsVisible) { tray.ShowNotification(Loc.T("Tray.UpdateTitle", release.Version.ToString(3)), Loc.T("Tray.UpdateText")); }
+        };
 
         // Started at sign-in: stay out of the way, in the tray or minimized on the taskbar.
         if (e.Args.Contains(StartupTask.MinimizedArgument))
@@ -87,9 +125,30 @@ public partial class App : Application
         }
         else { window.Show(); }
 
-        _ = main.About.CheckForUpdatesAsync();
+        updates.Start();
         _ = settingsViewModel.LoadStartWithWindowsAsync();
         await routes.InitializeAsync();
+    }
+
+    // Set once the window exists: saves state and, with "unblock on exit", removes the rules.
+    Action? cleanUp;
+
+    // True once the app is really exiting, so "close to tray" doesn't stop it.
+    bool exiting;
+    TrayIcon? trayIcon;
+
+    // The verified new exe is put in place first, so a failure leaves this copy running as it was; then this copy closes
+    // like on exit and starts the new one (which only becomes the running instance once this one has let go).
+    void InstallAndRestart(string newExePath)
+    {
+        Updater.Swap(newExePath);
+        exiting = true;
+        cleanUp?.Invoke();
+        instanceMutex?.ReleaseMutex();
+        instanceMutex?.Dispose();
+        instanceMutex = null;
+        Process.Start(new ProcessStartInfo(Updater.ExePath!) { UseShellExecute = true });
+        Shutdown();
     }
 
     bool TryBecomeTheOnlyInstance()
@@ -133,8 +192,7 @@ public partial class App : Application
     void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         e.Handled = true;
-        MessageBox.Show("Something went wrong:" + Environment.NewLine + e.Exception.Message + Environment.NewLine + Environment.NewLine +
-            "If this keeps happening, please report it at " + AppInfo.IssuesUrl,
+        MessageBox.Show(Loc.T("App.Error", e.Exception.Message, AppInfo.IssuesUrl),
             "Steam Route Tool", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 }

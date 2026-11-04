@@ -16,9 +16,11 @@ public sealed class SettingsStoreTests : IDisposable
     [Fact]
     public void Save_ThenLoad_KeepsSettingsAndGameProfiles()
     {
-        AppSettings settings = new AppSettings { Theme = "Dark", PingOnStartup = false, GroupByRegion = false, UnblockOnExit = true, MinimizeToTray = true, LastAppId = 570 };
+        AppSettings settings = new AppSettings { Theme = "Dark", PingOnStartup = false, GroupByRegion = false, UnblockOnExit = true, MinimizeToTray = true, CheckForUpdates = false, BlockNewRoutes = true, RegionFilter = "Europe", StatusFilter = "Blocked", SortBy = "Ping", CloseToTray = false, LastAppId = 570 };
+        settings.AutoPresets[730] = "Warsaw only";
         settings.Profiles[730] = new GameProfile { BlockedRelays = ["155.133.248.36", "155.133.248.37"] };
         settings.Profiles[570] = new GameProfile();
+        settings.Presets[730] = [new GamePreset { Name = "Warsaw only", BlockedRoutes = ["ams", "fra"], BlockedRelays = ["155.133.230.50"] }];
 
         new SettingsStore(SettingsPath).Save(settings);
         AppSettings loaded = new SettingsStore(SettingsPath).Load();
@@ -27,10 +29,19 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.False(loaded.PingOnStartup);
         Assert.False(loaded.GroupByRegion);
         Assert.True(loaded.UnblockOnExit);
-        Assert.True(loaded.MinimizeToTray);
+        Assert.True(loaded.MinimizeToTray);
+        Assert.False(loaded.CheckForUpdates);
+        Assert.True(loaded.BlockNewRoutes);
+        Assert.False(loaded.CloseToTray);
+        Assert.Equal("Warsaw only", loaded.AutoPresets[730]);
+        Assert.Equal(("Europe", "Blocked", "Ping"), (loaded.RegionFilter, loaded.StatusFilter, loaded.SortBy));
         Assert.Equal(570, loaded.LastAppId);
         Assert.Equal(["155.133.248.36", "155.133.248.37"], loaded.Profiles[730].BlockedRelays);
         Assert.Empty(loaded.Profiles[570].BlockedRelays);
+        GamePreset preset = Assert.Single(loaded.Presets[730]);
+        Assert.Equal("Warsaw only", preset.Name);
+        Assert.Equal(["ams", "fra"], preset.BlockedRoutes);
+        Assert.Equal(["155.133.230.50"], preset.BlockedRelays);
     }
 
     [Fact]
@@ -46,5 +57,12 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.False(loaded.UnblockOnExit);
         Assert.Equal(730, loaded.LastAppId);
         Assert.Empty(loaded.Profiles);
+    }
+
+    [Fact]
+    public void NewSettings_MinimizeToTray()
+    {
+        Assert.True(new AppSettings().MinimizeToTray);
+        Assert.True(new AppSettings().CloseToTray);
     }
 }

@@ -4,10 +4,14 @@
              xmlns:vm="clr-namespace:SteamRouteTool.ViewModels"
              xmlns:views="clr-namespace:SteamRouteTool.Views"
              xmlns:converters="clr-namespace:SteamRouteTool.Converters"
+             xmlns:l="clr-namespace:SteamRouteTool.Localization"
              ThemeMode="System"
              ShutdownMode="OnMainWindowClose">
   <Application.Resources>
     <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Gaming.xaml" />
+      </ResourceDictionary.MergedDictionaries>
       <!-- Pages: each view model in the navigation is shown with its view. -->
       <DataTemplate DataType="{x:Type vm:RoutesViewModel}">
         <views:RoutesView />
@@ -87,7 +91,7 @@
       <!-- A borderless button around a ping value: click to ping again. -->
       <Style x:Key="PingButton" TargetType="Button">
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="ToolTip" Value="Ping again" />
+        <Setter Property="ToolTip" Value="{l:Tr Routes.PingAgainTooltip}" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="Template">
           <Setter.Value>
@@ -173,6 +177,75 @@
               <ControlTemplate.Triggers>
                 <Trigger Property="IsChecked" Value="True">
                   <Setter TargetName="Glyph" Property="Text" Value="&#xE70D;" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <!-- Settings page: a heading above a group of rows (icon, title, short description, control). -->
+      <Style x:Key="SettingsHeading" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="2,8,0,8" />
+      </Style>
+      <Style x:Key="SettingsGroup" TargetType="Border" BasedOn="{StaticResource Card}">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,0,0,20" />
+      </Style>
+      <Style x:Key="SettingsRow" TargetType="Grid">
+        <Setter Property="Margin" Value="16,12" />
+        <Setter Property="MinHeight" Value="44" />
+      </Style>
+      <Style x:Key="SettingsDivider" TargetType="Border">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+      </Style>
+
+      <!-- Sidebar: bare icon links (Buy me a coffee, GitHub). -->
+      <Style x:Key="IconLinkButton" TargetType="Button">
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border x:Name="Chrome" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                <ContentPresenter />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <!-- An on/off switch for check boxes, like Windows Settings. -->
+      <Style x:Key="ToggleSwitch" TargetType="CheckBox">
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="CheckBox">
+              <Border x:Name="Track" Width="40" Height="20" CornerRadius="10" BorderThickness="1" Background="Transparent"
+                      BorderBrush="{DynamicResource TextFillColorSecondaryBrush}">
+                <Ellipse x:Name="Thumb" Width="12" Height="12" Margin="4,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                         Fill="{DynamicResource TextFillColorSecondaryBrush}" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="Thumb" Property="Width" Value="14" />
+                  <Setter TargetName="Thumb" Property="Height" Value="14" />
+                  <Setter TargetName="Thumb" Property="Margin" Value="3,0" />
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                  <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                  <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                  <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
+                  <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                  <Setter TargetName="Track" Property="Opacity" Value="0.4" />
                 </Trigger>
               </ControlTemplate.Triggers>
             </ControlTemplate>

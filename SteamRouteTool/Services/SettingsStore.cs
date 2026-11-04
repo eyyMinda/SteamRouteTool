@@ -4,27 +4,57 @@ namespace SteamRouteTool.Services;
 
 public sealed class AppSettings
 {
+    /// <summary>A language code from Localization.Loc.Languages, e.g. "en" or "de".</summary>
+    public string Language { get; set; } = Localization.Loc.DefaultLanguage;
     /// <summary>"System", "Light" or "Dark".</summary>
     public string Theme { get; set; } = "System";
     public bool PingOnStartup { get; set; } = true;
+    /// <summary>Look for a new version on GitHub at startup and once a day (installing always takes a click).</summary>
+    public bool CheckForUpdates { get; set; } = true;
     public bool GroupByRegion { get; set; } = true;
+    /// <summary>The Routes page's filters and sort, kept between sessions (internal values: a region name or "All", see RoutesViewModel).</summary>
+    public string RegionFilter { get; set; } = "All";
+    public string StatusFilter { get; set; } = "All";
+    public string SortBy { get; set; } = "Region";
     /// <summary>Remove all firewall rules when the app closes, and re-apply the game's profile when it starts.</summary>
     public bool UnblockOnExit { get; set; }
     /// <summary>Minimizing hides the window to an icon in the notification area instead of the taskbar.</summary>
-    public bool MinimizeToTray { get; set; }
+    public bool MinimizeToTray { get; set; } = true;
+    /// <summary>The close button hides the window to the tray instead of exiting (Exit is in the tray menu).</summary>
+    public bool CloseToTray { get; set; } = true;
+    /// <summary>Per game (by app ID): the name of the preset to apply when the game starts.</summary>
+    public Dictionary<int, string> AutoPresets { get; set; } = new Dictionary<int, string>();
     /// <summary>Whether the "still running in the tray" notification has been shown once.</summary>
     public bool TrayHintShown { get; set; }
     /// <summary>How many of the fastest routes Auto select keeps.</summary>
     public int AutoRouteCount { get; set; } = AutoSelector.DefaultRouteCount;
     public int LastAppId { get; set; } = Models.Game.CounterStrike2;
+    /// <summary>Block locations Valve adds (instead of allowing them), and block them when applying presets saved before they existed.</summary>
+    public bool BlockNewRoutes { get; set; }
+    /// <summary>The route codes seen per game (by app ID), to spot locations Valve adds.</summary>
+    public Dictionary<int, List<string>> KnownRoutes { get; set; } = new Dictionary<int, List<string>>();
     /// <summary>Saved block profile per game (by app ID), applied to the firewall when switching to that game.</summary>
     public Dictionary<int, GameProfile> Profiles { get; set; } = new Dictionary<int, GameProfile>();
+    /// <summary>Named sets of blocked routes per game (by app ID), in the order they were created.</summary>
+    public Dictionary<int, List<GamePreset>> Presets { get; set; } = new Dictionary<int, List<GamePreset>>();
 }
 
 public sealed class GameProfile
 {
     /// <summary>Addresses of the relays blocked for this game.</summary>
     public List<string> BlockedRelays { get; set; } = new List<string>();
+}
+
+/// <summary>A named set of blocked routes, e.g. "EU blocked" or "Warsaw only". See <see cref="PresetLogic"/>.</summary>
+public sealed class GamePreset
+{
+    public string Name { get; set; } = "";
+    /// <summary>Codes of routes blocked as a whole, so relays added to them later are blocked too.</summary>
+    public List<string> BlockedRoutes { get; set; } = new List<string>();
+    /// <summary>Addresses of individually blocked relays of routes that are only partly blocked.</summary>
+    public List<string> BlockedRelays { get; set; } = new List<string>();
+    /// <summary>Every route code when the preset was saved, so routes added later can be told apart (empty for older presets).</summary>
+    public List<string> KnownRoutes { get; set; } = new List<string>();
 }
 
 /// <summary>Loads and saves <see cref="AppSettings"/> as JSON. Read and write failures fall back to defaults / are ignored.</summary>

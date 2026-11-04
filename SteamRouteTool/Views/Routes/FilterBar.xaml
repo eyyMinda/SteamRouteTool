@@ -1,0 +1,71 @@
+<UserControl x:Class="SteamRouteTool.Views.Routes.FilterBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:SteamRouteTool.Localization"
+             xmlns:views="clr-namespace:SteamRouteTool.Views">
+  <!-- Search, sort, Ping all and the rarer actions (menu); then the region chips and the status filter. -->
+  <StackPanel>
+    <DockPanel Margin="0,0,0,10">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0">
+        <Grid Width="150" VerticalAlignment="Center" ToolTip="{l:Tr Routes.SortTooltip}">
+          <ComboBox ItemsSource="{Binding SortOptions}" SelectedValuePath="Key" DisplayMemberPath="Text" SelectedValue="{Binding SelectedSort}"
+                    Padding="34,0,0,0" VerticalContentAlignment="Center" AutomationProperties.Name="Sort" />
+          <TextBlock Text="&#xE8CB;" Style="{StaticResource Icon}" FontSize="14" Margin="12,0,0,0" IsHitTestVisible="False"
+                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Grid>
+        <Button Style="{StaticResource RoundIconButton}" Command="{Binding PingAllCommand}" Margin="10,0,0,0" ToolTip="{l:Tr Routes.PingAllTooltip}"
+                AutomationProperties.Name="Ping all">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE9D9;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,6,0" />
+            <TextBlock Text="{l:Tr Routes.PingAll}" />
+          </StackPanel>
+        </Button>
+        <Button x:Name="MoreButton" Style="{StaticResource RoundIconButton}" Margin="6,0,0,0" Click="MoreButton_Click"
+                ToolTip="{l:Tr Routes.MoreActions}" AutomationProperties.Name="More actions">
+          <TextBlock Text="&#xE712;" Style="{StaticResource Icon}" FontSize="14" />
+          <Button.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="{l:Tr Routes.Refresh}" Command="{Binding RefreshCommand}">
+                <MenuItem.Icon><TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="14" /></MenuItem.Icon>
+              </MenuItem>
+              <Separator />
+              <MenuItem Header="{l:Tr Routes.BlockAllExceptShown}" Command="{Binding BlockAllExceptShownCommand}">
+                <MenuItem.Icon><TextBlock Text="&#xE71C;" Style="{StaticResource Icon}" FontSize="14" /></MenuItem.Icon>
+              </MenuItem>
+              <MenuItem Header="{l:Tr Routes.UnblockAll}" Command="{Binding UnblockAllCommand}">
+                <MenuItem.Icon><TextBlock Text="&#xE785;" Style="{StaticResource Icon}" FontSize="14" /></MenuItem.Icon>
+              </MenuItem>
+              <MenuItem Header="{l:Tr Routes.BlockAll}" Command="{Binding BlockAllCommand}">
+                <MenuItem.Icon><TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="14" /></MenuItem.Icon>
+              </MenuItem>
+              <Separator />
+              <MenuItem Header="{l:Tr Routes.GroupByRegion}" IsCheckable="True" IsChecked="{Binding GroupByRegion}" />
+              <MenuItem Header="{l:Tr Routes.ClearFilters}" Command="{Binding ClearFiltersCommand}" />
+            </ContextMenu>
+          </Button.ContextMenu>
+        </Button>
+      </StackPanel>
+      <Grid>
+        <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="34,7,8,7" VerticalContentAlignment="Center"
+                 ToolTip="Ctrl+F" AutomationProperties.Name="Search routes" />
+        <TextBlock Text="&#xE721;" Style="{StaticResource Icon}" FontSize="14" Margin="12,0,0,0" IsHitTestVisible="False"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        <TextBlock Text="{l:Tr Routes.SearchPlaceholder}" Margin="36,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                   TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                   Visibility="{Binding SearchText, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+      </Grid>
+    </DockPanel>
+    <DockPanel>
+      <ListBox DockPanel.Dock="Right" Style="{StaticResource Segmented}" ItemsSource="{Binding StatusOptions}" SelectedValuePath="Key"
+               DisplayMemberPath="Text" SelectedValue="{Binding SelectedStatus}" VerticalAlignment="Top" Margin="10,0,0,8"
+               AutomationProperties.Name="Status" />
+      <ComboBox Visibility="{Binding (views:Responsive.IsCompact), RelativeSource={RelativeSource Self}, Converter={StaticResource VisibleWhen}}"
+                ItemsSource="{Binding RegionOptions}" SelectedValuePath="Key" DisplayMemberPath="Text"
+                SelectedValue="{Binding SelectedRegion}" Width="170" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,8"
+                AutomationProperties.Name="Region" />
+      <ListBox Style="{StaticResource Chips}" ItemsSource="{Binding RegionOptions}" SelectedValuePath="Key" DisplayMemberPath="Text"
+               SelectedValue="{Binding SelectedRegion}" AutomationProperties.Name="Region"
+               Visibility="{Binding (views:Responsive.IsCompact), RelativeSource={RelativeSource Self}, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+    </DockPanel>
+  </StackPanel>
+</UserControl>
