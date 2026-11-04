@@ -4,7 +4,7 @@ Choose which Valve relay locations your games can connect to.
 
 Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
 
-Current version: **2.1.3**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+Current version: **2.1.4**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ![Steam Route Tool: the Routes page with game tabs, presets, Auto select and the server list](docs/screenshot.png)
 
@@ -36,6 +36,7 @@ Requirements:
 - **Light and dark theme** (Windows 11 style, follows your Windows setting).
 - **9 languages:** English, Deutsch, Español, Français, Polski, Português (Brasil), Русский, Türkçe and 简体中文, switchable in Settings without restarting.
 - **Updates in one click:** the app checks GitHub at startup and once a day (optional) and shows **Update to x.y.z** at the bottom left; **Update now** downloads the new exe, verifies it against the release's `SHA256SUMS.txt`, swaps it in and restarts.
+- **Warns when Windows Firewall is off**, since blocking can't work then.
 - **Built-in help** and links to the changelog and releases.
 
 The app's **How to use** page has a quick start, common questions (VAC, administrator rights, queue times, FACEIT, privacy) and details on every feature.
@@ -54,7 +55,7 @@ Settings are grouped like Windows Settings; hover a setting for a longer explana
   - **Unblock all routes when closing:** routes are only blocked while the app is open. Your selection is kept and applied again on the next start.
 - **Startup and tray:**
   - **Start with Windows:** starts the app minimized when you sign in, through a Task Scheduler task (named `SteamRouteTool`) that runs it with administrator rights, so there's no prompt.
-  - **Minimize to tray:** minimizing hides the window from the taskbar and keeps an icon in the notification area. Click it to open the window; right-click it to switch games and presets, run Auto select, unblock all routes or exit. The close button still exits.
+  - **Minimize to tray** (on by default): minimizing hides the window from the taskbar and keeps an icon in the notification area. Click it to open the window; right-click it to switch games and presets, run Auto select, unblock all routes or exit. The close button still exits.
 - **Updates:** check now, install a newer version, and turn automatic checks on or off.
 - **Files and firewall:** shortcuts to the folder with your settings and game profiles, and to Windows Defender Firewall, where the rules can be inspected.
 

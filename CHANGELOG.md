@@ -3,6 +3,18 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.1.4] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Warning when Windows Firewall is off.** With the firewall off for an active network (domain, private or public), the tool's rules have no effect even though routes show as blocked. The Routes page now says so, with **Open firewall settings** and **Check again**. It checks at startup, on Refresh and whenever you come back to the window.
+
+### Changed
+
+- **Minimize to tray** is on by default for new installs (existing settings are kept).
+
 ## [2.1.3] - 2026-11-04
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

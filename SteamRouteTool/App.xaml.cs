@@ -67,6 +67,7 @@ public partial class App : Application
             if (settings.UnblockOnExit) { routes.RemoveRulesOnExit(); }
         }
         window.Closing += (sender, args) => CleanUp();
+        window.Activated += (sender, args) => _ = routes.CheckFirewallAsync();
         SessionEnding += (sender, args) => CleanUp();
         cleanUp = CleanUp;
         MainWindow = window;

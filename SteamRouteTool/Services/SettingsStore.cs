@@ -15,7 +15,7 @@ public sealed class AppSettings
     /// <summary>Remove all firewall rules when the app closes, and re-apply the game's profile when it starts.</summary>
     public bool UnblockOnExit { get; set; }
     /// <summary>Minimizing hides the window to an icon in the notification area instead of the taskbar.</summary>
-    public bool MinimizeToTray { get; set; }
+    public bool MinimizeToTray { get; set; } = true;
     /// <summary>Whether the "still running in the tray" notification has been shown once.</summary>
     public bool TrayHintShown { get; set; }
     /// <summary>How many of the fastest routes Auto select keeps.</summary>

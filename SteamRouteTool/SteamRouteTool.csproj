@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <Version>2.1.3</Version>
+    <Version>2.1.4</Version>
     <Product>Steam Route Tool</Product>
     <AssemblyTitle>Choose which Valve relay locations your games can connect to</AssemblyTitle>
     <Company>Froody, eyyMinda</Company>

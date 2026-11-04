@@ -68,6 +68,13 @@
   "Routes.RelayCount.One": "{0} przekaźnik",
   "Routes.RelayCount.Other": "Przekaźniki: {0}",
 
+  "Firewall.Off": "Zapora systemu Windows jest wyłączona dla: {0}, więc zablokowane trasy nie są naprawdę blokowane. Włącz ją, aby blokowanie działało.",
+  "Firewall.Domain": "sieci domenowe",
+  "Firewall.Private": "sieci prywatne",
+  "Firewall.Public": "sieci publiczne",
+  "Firewall.Open": "Otwórz ustawienia zapory",
+  "Firewall.CheckAgain": "Sprawdź ponownie",
+
   "Region.Europe": "Europa",
   "Region.NorthAmerica": "Ameryka Północna",
   "Region.SouthAmerica": "Ameryka Południowa",

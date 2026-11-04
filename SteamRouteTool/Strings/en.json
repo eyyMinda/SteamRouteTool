@@ -68,6 +68,13 @@
   "Routes.RelayCount.One": "{0} relay",
   "Routes.RelayCount.Other": "{0} relays",
 
+  "Firewall.Off": "Windows Firewall is off for {0}, so the blocked routes aren't actually blocked. Turn it on to make blocking work.",
+  "Firewall.Domain": "domain networks",
+  "Firewall.Private": "private networks",
+  "Firewall.Public": "public networks",
+  "Firewall.Open": "Open firewall settings",
+  "Firewall.CheckAgain": "Check again",
+
   "Region.Europe": "Europe",
   "Region.NorthAmerica": "North America",
   "Region.SouthAmerica": "South America",

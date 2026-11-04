@@ -53,4 +53,10 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(730, loaded.LastAppId);
         Assert.Empty(loaded.Profiles);
     }
+
+    [Fact]
+    public void NewSettings_MinimizeToTray()
+    {
+        Assert.True(new AppSettings().MinimizeToTray);
+    }
 }

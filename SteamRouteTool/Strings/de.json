@@ -68,6 +68,13 @@
   "Routes.RelayCount.One": "{0} Relay",
   "Routes.RelayCount.Other": "{0} Relays",
 
+  "Firewall.Off": "Die Windows-Firewall ist für {0} ausgeschaltet, daher sind die blockierten Routen nicht wirklich blockiert. Schalte sie ein, damit das Blockieren wirkt.",
+  "Firewall.Domain": "Domänennetzwerke",
+  "Firewall.Private": "private Netzwerke",
+  "Firewall.Public": "öffentliche Netzwerke",
+  "Firewall.Open": "Firewall-Einstellungen öffnen",
+  "Firewall.CheckAgain": "Erneut prüfen",
+
   "Region.Europe": "Europa",
   "Region.NorthAmerica": "Nordamerika",
   "Region.SouthAmerica": "Südamerika",

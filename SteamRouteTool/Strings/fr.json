@@ -68,6 +68,13 @@
   "Routes.RelayCount.One": "{0} relais",
   "Routes.RelayCount.Other": "{0} relais",
 
+  "Firewall.Off": "Le Pare-feu Windows est désactivé pour {0} : les routes bloquées ne sont donc pas vraiment bloquées. Activez-le pour que le blocage fonctionne.",
+  "Firewall.Domain": "les réseaux de domaine",
+  "Firewall.Private": "les réseaux privés",
+  "Firewall.Public": "les réseaux publics",
+  "Firewall.Open": "Ouvrir les paramètres du pare-feu",
+  "Firewall.CheckAgain": "Vérifier à nouveau",
+
   "Region.Europe": "Europe",
   "Region.NorthAmerica": "Amérique du Nord",
   "Region.SouthAmerica": "Amérique du Sud",

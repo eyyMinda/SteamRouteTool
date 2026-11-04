@@ -66,6 +66,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     // Texts built here are refreshed; messages already shown are dismissed rather than left in the old language.
     void OnLanguageChanged()
     {
+        UpdateFirewallWarning();
         DismissMessages();
         PresetMessage = null;
         foreach (RouteViewModel route in Routes) { route.RefreshTexts(); }
@@ -200,6 +201,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     {
         if (initialized) { return; }
         initialized = true;
+        _ = CheckFirewallAsync();
         // With "unblock on exit", the rules were removed on purpose when the app closed, so the saved profile (not the
         // empty firewall) says what should be blocked. Otherwise the firewall is the truth.
         await LoadGameAsync(SelectedGame, fromFirewall: !settings.UnblockOnExit);
@@ -226,8 +228,45 @@ public sealed partial class RoutesViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     Task RefreshAsync()
     {
+        _ = CheckFirewallAsync();
         return LoadGameAsync(SelectedGame, fromFirewall: true);
     }
+
+    // ----- Windows Firewall state -----
+
+    /// <summary>Shown while Windows Firewall is off for an active network, since the rules then block nothing.</summary>
+    [ObservableProperty]
+    string? firewallWarning;
+
+    int disabledProfiles;
+
+    /// <summary>Checks whether Windows Firewall is on; called at startup, on Refresh and when the window is activated.</summary>
+    [RelayCommand]
+    public async Task CheckFirewallAsync()
+    {
+        try
+        {
+            disabledProfiles = await Task.Run(firewall.GetDisabledActiveProfiles);
+        }
+        catch (Exception ex) when (FirewallService.IsFirewallError(ex) || ex is InvalidCastException || ex is Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
+        {
+            // Unknown state (e.g. a third-party firewall in charge): don't warn on a guess.
+            disabledProfiles = 0;
+        }
+        UpdateFirewallWarning();
+    }
+
+    void UpdateFirewallWarning()
+    {
+        List<string> networks = new List<string>();
+        if ((disabledProfiles & FirewallService.ProfileDomain) != 0) { networks.Add(Loc.T("Firewall.Domain")); }
+        if ((disabledProfiles & FirewallService.ProfilePrivate) != 0) { networks.Add(Loc.T("Firewall.Private")); }
+        if ((disabledProfiles & FirewallService.ProfilePublic) != 0) { networks.Add(Loc.T("Firewall.Public")); }
+        FirewallWarning = networks.Count == 0 ? null : Loc.T("Firewall.Off", string.Join(", ", networks));
+    }
+
+    [RelayCommand]
+    void OpenFirewallSettings() => Shell.Open("firewall.cpl");
 
     bool CanRefresh() => !IsLoading;
 

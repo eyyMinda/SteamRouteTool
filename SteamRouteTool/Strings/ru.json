@@ -68,6 +68,13 @@
   "Routes.RelayCount.One": "{0} реле",
   "Routes.RelayCount.Other": "Реле: {0}",
 
+  "Firewall.Off": "Брандмауэр Windows отключён для: {0}, поэтому заблокированные маршруты на самом деле не блокируются. Включите его, чтобы блокировка работала.",
+  "Firewall.Domain": "доменные сети",
+  "Firewall.Private": "частные сети",
+  "Firewall.Public": "общедоступные сети",
+  "Firewall.Open": "Открыть настройки брандмауэра",
+  "Firewall.CheckAgain": "Проверить снова",
+
   "Region.Europe": "Европа",
   "Region.NorthAmerica": "Северная Америка",
   "Region.SouthAmerica": "Южная Америка",
