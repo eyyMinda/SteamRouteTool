@@ -50,6 +50,10 @@ public sealed partial class RoutesViewModel : ObservableObject
         cachedPings = pingCache.Load();
         selectedGame = Game.FromAppId(settings.LastAppId);
         groupByRegion = settings.GroupByRegion;
+        // The saved region is applied once the routes (and so the region list) have loaded; see BuildRoutes.
+        savedRegion = settings.RegionFilter;
+        selectedStatus = settings.StatusFilter is StatusAll or StatusBlocked or StatusNotBlocked ? settings.StatusFilter : StatusAll;
+        selectedSort = settings.SortBy is SortRegion or SortName or SortPing or SortStatus ? settings.SortBy : SortRegion;
         autoRouteCount = Math.Clamp(settings.AutoRouteCount, 1, 20);
 
         ListCollectionView view = (ListCollectionView)CollectionViewSource.GetDefaultView(Routes);
@@ -60,6 +64,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         // shaping misorders grouped rows. Blocked-state changes refresh the view explicitly for the status filter.
         RoutesView = view;
         ApplyGrouping();
+        ApplySort();
         Loc.Instance.Changed += OnLanguageChanged;
     }
 
@@ -232,6 +237,11 @@ public sealed partial class RoutesViewModel : ObservableObject
         return LoadGameAsync(SelectedGame, fromFirewall: true);
     }
 
+    /// <summary>Asks the page to focus the search box (Ctrl+F).</summary>
+    public event Action? SearchFocusRequested;
+
+    public void RequestSearchFocus() => SearchFocusRequested?.Invoke();
+
     // ----- New locations -----
 
     /// <summary>Tells about locations Valve added since the game was last loaded.</summary>
@@ -388,11 +398,19 @@ public sealed partial class RoutesViewModel : ObservableObject
             Routes.Add(new RouteViewModel(this, pop, expanded: pop.Relays.Count > 1 && GetBlockedState(pop) == null));
         }
 
-        string selected = SelectedRegion;
-        RegionOptions.Clear();
-        RegionOptions.Add(AllRegionsOption);
-        foreach (string region in RegionClassifier.All.Where(region => pops.Any(pop => pop.Region == region))) { RegionOptions.Add(RegionOptionsByName[region]); }
-        SelectedRegion = RegionOptions.Any(option => option.Key == selected) ? selected : AllRegions;
+        string selected = savedRegion ?? SelectedRegion;
+        savedRegion = null;
+        // Updated in place rather than cleared: clearing would clear the lists' selection too (and write that back).
+        List<LocalizedOption> wanted = [AllRegionsOption, .. RegionClassifier.All.Where(region => pops.Any(pop => pop.Region == region)).Select(region => RegionOptionsByName[region])];
+        for (int i = RegionOptions.Count - 1; i >= 0; i--)
+        {
+            if (!wanted.Contains(RegionOptions[i])) { RegionOptions.RemoveAt(i); }
+        }
+        for (int i = 0; i < wanted.Count; i++)
+        {
+            if (i >= RegionOptions.Count || RegionOptions[i] != wanted[i]) { RegionOptions.Insert(i, wanted[i]); }
+        }
+        SelectedRegion = wanted.Any(option => option.Key == selected) ? selected : AllRegions;
         LoadPresets();
         NotifySummaryChanged();
     }
@@ -405,8 +423,27 @@ public sealed partial class RoutesViewModel : ObservableObject
     // ----- Filtering -----
 
     partial void OnSearchTextChanged(string value) => RefreshView();
-    partial void OnSelectedRegionChanged(string value) => RefreshView();
-    partial void OnSelectedStatusChanged(string value) => RefreshView();
+    partial void OnSelectedRegionChanged(string value)
+    {
+        RefreshView();
+        SaveFilters();
+    }
+
+    partial void OnSelectedStatusChanged(string value)
+    {
+        RefreshView();
+        SaveFilters();
+    }
+
+    void SaveFilters()
+    {
+        // While loading, the region list is rebuilt and briefly falls back to "All"; that isn't the user's choice.
+        if (IsLoading) { return; }
+        settings.RegionFilter = SelectedRegion;
+        settings.StatusFilter = SelectedStatus;
+        settings.SortBy = SelectedSort;
+        settingsStore.Save(settings);
+    }
 
     public const string SortRegion = "Region";
     public const string SortName = "Name";
@@ -424,7 +461,11 @@ public sealed partial class RoutesViewModel : ObservableObject
     [ObservableProperty]
     string selectedSort = SortRegion;
 
-    partial void OnSelectedSortChanged(string value) => ApplySort();
+    partial void OnSelectedSortChanged(string value)
+    {
+        ApplySort();
+        SaveFilters();
+    }
 
     // Ping order isn't live (rows would jump while pings arrive); picking the sort again re-sorts.
     void ApplySort()
@@ -672,6 +713,9 @@ public sealed partial class RoutesViewModel : ObservableObject
     PresetViewModel? selectedPreset;
 
     bool updatingSelectedPreset;
+
+    // The region filter from the last session, until the region list exists to select it in.
+    string? savedRegion;
 
     /// <summary>Whether the panel to save, rename and delete presets is open.</summary>
     [ObservableProperty]

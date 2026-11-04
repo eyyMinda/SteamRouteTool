@@ -46,8 +46,8 @@
         </Button>
       </StackPanel>
       <Grid>
-        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="34,7,8,7" VerticalContentAlignment="Center"
-                 AutomationProperties.Name="Search routes" />
+        <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="34,7,8,7" VerticalContentAlignment="Center"
+                 ToolTip="Ctrl+F" AutomationProperties.Name="Search routes" />
         <TextBlock Text="&#xE721;" Style="{StaticResource Icon}" FontSize="14" Margin="12,0,0,0" IsHitTestVisible="False"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         <TextBlock Text="{l:Tr Routes.SearchPlaceholder}" Margin="36,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"

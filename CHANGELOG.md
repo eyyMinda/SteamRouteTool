@@ -3,6 +3,18 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.1.6] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Keyboard shortcuts**, from any page: **Ctrl+F** search the routes, **F5** ping all, **Ctrl+1 / 2 / 3** switch to Counter-Strike 2, Dota 2 or Deadlock. Listed on the How to use page; Ping all's tooltip mentions F5.
+
+### Changed
+
+- The Routes page remembers the region, the status filter and the sort between sessions (the search starts empty).
+
 ## [2.1.5] - 2026-11-04
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

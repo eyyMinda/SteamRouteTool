@@ -12,6 +12,10 @@ public sealed class AppSettings
     /// <summary>Look for a new version on GitHub at startup and once a day (installing always takes a click).</summary>
     public bool CheckForUpdates { get; set; } = true;
     public bool GroupByRegion { get; set; } = true;
+    /// <summary>The Routes page's filters and sort, kept between sessions (internal values: a region name or "All", see RoutesViewModel).</summary>
+    public string RegionFilter { get; set; } = "All";
+    public string StatusFilter { get; set; } = "All";
+    public string SortBy { get; set; } = "Region";
     /// <summary>Remove all firewall rules when the app closes, and re-apply the game's profile when it starts.</summary>
     public bool UnblockOnExit { get; set; }
     /// <summary>Minimizing hides the window to an icon in the notification area instead of the taskbar.</summary>
