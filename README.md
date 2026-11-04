@@ -1,8 +1,10 @@
 # Steam Route Tool
 
-Choose which Valve relay locations your games can connect to.
+Choose your Counter-Strike 2, Dota 2 and Deadlock matchmaking servers: a free, open-source server region picker for Windows.
 
-Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
+Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones or only one region such as Europe or North America. It shows the ping to every location, so you can see which servers are closest.
+
+Website: https://eyyminda.github.io/SteamRouteTool/. This is the maintained successor of the original Steam Route Tool by Froody (2019), with a new interface and support for CS2, Dota 2 and Deadlock.
 
 Current version: **2.2.1**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
@@ -10,7 +12,7 @@ Current version: **2.2.1**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ## Download
 
-Get it from [Releases](../../releases). Both downloads are a single exe with no installer:
+Get it from [Releases](https://github.com/eyyMinda/SteamRouteTool/releases/latest) or the [website](https://eyyminda.github.io/SteamRouteTool/). Both downloads are a single exe with no installer:
 
 - `SteamRouteTool-<version>-win-x64.exe` (about 62 MB): works on any PC, no .NET install needed.
 - `SteamRouteTool-<version>-win-x64-small.exe` (about 1 MB): the same app for PCs with the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0). Without it, Windows offers to download it.

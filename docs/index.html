@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steam Route Tool – CS2, Dota 2 and Deadlock server region picker</title>
+<meta name="description" content="Free, open-source Windows app to choose your Counter-Strike 2, Dota 2 and Deadlock matchmaking servers. Block Valve relay regions with Windows Firewall, see the ping to every location, and play only on nearby servers.">
+<link rel="canonical" href="https://eyyminda.github.io/SteamRouteTool/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Steam Route Tool – CS2, Dota 2 and Deadlock server region picker">
+<meta property="og:description" content="Choose which Valve relay locations your games connect to. Free and open source for Windows 10 and 11.">
+<meta property="og:url" content="https://eyyminda.github.io/SteamRouteTool/">
+<meta property="og:image" content="https://eyyminda.github.io/SteamRouteTool/screenshot.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230067c0' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01'/%3E%3C/svg%3E">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Steam Route Tool",
+  "description": "Choose which Valve relay locations Counter-Strike 2, Dota 2 and Deadlock can connect you to, using Windows Firewall rules.",
+  "operatingSystem": "Windows 10, Windows 11",
+  "applicationCategory": "GameApplication",
+  "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+  "url": "https://eyyminda.github.io/SteamRouteTool/",
+  "downloadUrl": "https://github.com/eyyMinda/SteamRouteTool/releases/latest",
+  "screenshot": "https://eyyminda.github.io/SteamRouteTool/screenshot.png",
+  "author": { "@type": "Person", "name": "eyyMinda", "url": "https://github.com/eyyMinda" },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<style>
+  :root {
+    --bg: #f3f3f3; --surface: #ffffff; --text: #1b1b1b; --muted: #5c5c5c; --border: #e0e0e0;
+    --accent: #0067c0; --accent-text: #ffffff; --accent-soft: #e6f0fa;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1c1c1c; --surface: #2b2b2b; --text: #f3f3f3; --muted: #b5b5b5; --border: #3d3d3d;
+            --accent: #60cdff; --accent-text: #00253a; --accent-soft: #23333d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.6;
+         font: 16px/1.6 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif; }
+  main, header, footer { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 56px; text-align: center; }
+  h1 { font-size: clamp(2rem, 6vw, 2.75rem); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.5rem; margin: 48px 0 12px; }
+  h3 { font-size: 1.05rem; margin: 0 0 4px; }
+  .lead { font-size: 1.15rem; color: var(--muted); max-width: 640px; margin: 0 auto 24px; }
+  a { color: var(--accent); }
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .btn { display: inline-block; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;
+         border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .btn small { display: block; font-weight: 400; font-size: 0.8rem; opacity: 0.85; }
+  .note { color: var(--muted); font-size: 0.9rem; margin-top: 12px; }
+  .shot { display: block; width: 100%; height: auto; margin: 40px 0 0; border-radius: 8px;
+          border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .card p { margin: 0; color: var(--muted); }
+  ol.steps { padding-left: 1.25rem; }
+  ol.steps li { margin-bottom: 6px; }
+  details { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 8px 0 0; color: var(--muted); }
+  footer { padding-top: 48px; padding-bottom: 40px; color: var(--muted); font-size: 0.9rem; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Steam Route Tool</h1>
+  <p class="lead">Choose your Counter-Strike 2, Dota 2 and Deadlock matchmaking servers. Block the Valve relay regions you don't want, see the ping to every location, and play only on nearby servers.</p>
+  <div class="buttons">
+    <a class="btn primary" id="dl-full" href="https://github.com/eyyMinda/SteamRouteTool/releases/latest">Download for Windows<small id="dl-full-info">Single exe, no install needed</small></a>
+    <a class="btn" id="dl-small" href="https://github.com/eyyMinda/SteamRouteTool/releases/latest">Small download<small>About 1 MB, needs .NET 10 Desktop Runtime</small></a>
+    <a class="btn" href="https://github.com/eyyMinda/SteamRouteTool">Source on GitHub<small>Free and open source (GPL-3.0)</small></a>
+  </div>
+  <p class="note">Windows 10 or 11 (x64). Runs as administrator because it creates firewall rules. <a href="#code-signing">Code signing</a> by SignPath Foundation.</p>
+</header>
+
+<main>
+  <img class="shot" src="screenshot.png" width="1180" height="720" alt="Steam Route Tool: the Routes page with game tabs, presets, Auto select and the server list with pings">
+
+  <h2>What it does</h2>
+  <p>Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only the ones in your region. It works like a CS2 server picker or region blocker, with the live server list from Steam.</p>
+
+  <div class="grid">
+    <div class="card"><h3>One-click blocking</h3><p>Block or allow a location with one click, or expand it to block single relays.</p></div>
+    <div class="card"><h3>Auto select</h3><p>Keep the fastest routes by ping and block the rest, with a preview and Undo.</p></div>
+    <div class="card"><h3>Play in one region</h3><p>Pick a region such as Europe and block everything else.</p></div>
+    <div class="card"><h3>Presets</h3><p>Save setups like "EU only" per game and apply them automatically when the game starts.</p></div>
+    <div class="card"><h3>Runs in the tray</h3><p>Starts with Windows, switches games and presets from the tray icon.</p></div>
+    <div class="card"><h3>9 languages</h3><p>English, Deutsch, Español, Français, Polski, Português (Brasil), Русский, Türkçe, 简体中文.</p></div>
+  </div>
+
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li>Download and start the exe. Windows asks for administrator rights.</li>
+    <li>Pick your game at the top. The route list comes live from Steam and every location is pinged.</li>
+    <li>Block what you don't want: click <b>Allowed</b> on a route, use <b>Auto select</b>, or pick a region and choose <b>Block all except shown</b>.</li>
+    <li>Start (or restart) matchmaking. Blocked locations aren't used anymore.</li>
+  </ol>
+
+  <h2>Questions</h2>
+  <details><summary>Can I get VAC banned for using it?</summary>
+    <p>Steam Route Tool never touches the game: it doesn't read or change game files or memory and doesn't inject anything. It only adds Windows Firewall rules, the same as blocking the servers by hand. Firewall-based server pickers have been used for years without known bans, but only Valve can guarantee anything, so use it at your own discretion.</p></details>
+  <details><summary>Will it lower my ping?</summary>
+    <p>Not directly. It stops matchmaking from putting you on distant servers, so you end up on the closest ones you allowed.</p></details>
+  <details><summary>Why do I wait longer for a match?</summary>
+    <p>Fewer allowed locations mean fewer servers to match on. Keep a few nearby routes open, or unblock more if the queue takes too long.</p></details>
+  <details><summary>Does it work with FACEIT or community servers?</summary>
+    <p>No, they use their own servers. It affects official matchmaking in CS2 (Premier, Competitive, Casual, Deathmatch and more), Dota 2 and Deadlock.</p></details>
+  <details><summary>How do I undo everything?</summary>
+    <p>Use <b>Unblock all</b> in the ⋯ menu. Or turn on <b>Unblock all routes when closing</b> so routes are only blocked while the app is open.</p></details>
+
+  <h2 id="code-signing">Code signing</h2>
+  <p>Free code signing provided by <a href="https://about.signpath.io/">SignPath.io</a>, certificate by <a href="https://signpath.org/">SignPath Foundation</a>. Releases are built and signed only by GitHub Actions from the public source code. Until signing is active, Windows SmartScreen may warn the first time: choose <b>More info</b>, then <b>Run anyway</b>. Every release lists the SHA-256 of its files in <code>SHA256SUMS.txt</code>. Details: <a href="https://github.com/eyyMinda/SteamRouteTool#code-signing-policy">code signing policy</a>.</p>
+
+  <h2 id="privacy">Privacy</h2>
+  <p>Steam Route Tool collects no data and has no accounts, analytics or telemetry. It only connects to Steam to get the relay list, to GitHub to check for and download updates, and to Valve's relays to ping them. Your settings stay on your PC. Details: <a href="https://github.com/eyyMinda/SteamRouteTool#privacy">privacy</a>.</p>
+</main>
+
+<footer>
+  <p>Steam Route Tool by <a href="https://github.com/eyyMinda">eyyMinda</a>, based on the original Steam Route Tool by Froody (2019). GPL-3.0.<br>Not affiliated with or endorsed by Valve Corporation.</p>
+</footer>
+
+<script>
+  // Point the download buttons straight at the latest release's exes; the release page stays the fallback.
+  fetch("https://api.github.com/repos/eyyMinda/SteamRouteTool/releases/latest")
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (release) {
+      release.assets.forEach(function (asset) {
+        if (/-win-x64-small\.exe$/.test(asset.name)) {
+          document.getElementById("dl-small").href = asset.browser_download_url;
+        } else if (/-win-x64\.exe$/.test(asset.name)) {
+          document.getElementById("dl-full").href = asset.browser_download_url;
+          document.getElementById("dl-full-info").textContent =
+            "Version " + release.tag_name.replace(/^v/, "") + " · " + Math.round(asset.size / 1048576) + " MB · no install needed";
+        }
+      });
+    })
+    .catch(function () {});
+</script>
+</body>
+</html>
