@@ -439,6 +439,4 @@ _By [zaxo7 ](https://github.com/zaxo7)._
 
 ## [1.0.0] - 2019-06-27
 
-_By [Froody](https://github.com/dfrood)._
-
 - Initial release.
