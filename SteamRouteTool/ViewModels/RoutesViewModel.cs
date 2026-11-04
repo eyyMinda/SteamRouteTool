@@ -115,19 +115,17 @@ public sealed partial class RoutesViewModel : ObservableObject
     void NotifySummaryChanged()
     {
         OnPropertyChanged(nameof(Summary));
+        OnPropertyChanged(nameof(BlockedSummary));
         OnPropertyChanged(nameof(HasNoShownRoutes));
         OnPropertyChanged(nameof(AutoSelectPreview));
     }
 
-    public string Summary
-    {
-        get
-        {
-            int blocked = Routes.Count(route => route.IsBlocked != false);
-            int shown = RoutesView.Cast<object>().Count();
-            return $"{blocked} of {Routes.Count} routes blocked · {shown} shown";
-        }
-    }
+    public string Summary => $"{BlockedText} · {RoutesView.Cast<object>().Count()} shown";
+
+    /// <summary>E.g. "40 of 45 routes blocked", or empty before the routes have loaded. Shown in the tray icon's tooltip.</summary>
+    public string BlockedSummary => Routes.Count == 0 ? "" : BlockedText;
+
+    string BlockedText => $"{Routes.Count(route => route.IsBlocked != false)} of {Routes.Count} routes blocked";
 
     // ----- Loading -----
 

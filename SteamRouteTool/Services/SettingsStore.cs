@@ -10,6 +10,10 @@ public sealed class AppSettings
     public bool GroupByRegion { get; set; } = true;
     /// <summary>Remove all firewall rules when the app closes, and re-apply the game's profile when it starts.</summary>
     public bool UnblockOnExit { get; set; }
+    /// <summary>Minimizing hides the window to an icon in the notification area instead of the taskbar.</summary>
+    public bool MinimizeToTray { get; set; }
+    /// <summary>Whether the "still running in the tray" notification has been shown once.</summary>
+    public bool TrayHintShown { get; set; }
     /// <summary>How many of the fastest routes Auto select keeps.</summary>
     public int AutoRouteCount { get; set; } = AutoSelector.DefaultRouteCount;
     public int LastAppId { get; set; } = Models.Game.CounterStrike2;

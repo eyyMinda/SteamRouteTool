@@ -20,9 +20,21 @@ public partial class App : Application
         }
     }
 
+    // Named per signed-in user session; a second instance asks the first one to show its window, then exits.
+    const string InstanceName = @"Local\SteamRouteTool";
+    const string ShowEventName = @"Local\SteamRouteTool.Show";
+
+    // Held for the whole run; a field so it isn't collected (which would release it).
+    Mutex? instanceMutex;
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (!TryBecomeTheOnlyInstance())
+        {
+            Shutdown();
+            return;
+        }
         DispatcherUnhandledException += OnUnhandledException;
 
         HttpClient httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(15) };
@@ -36,7 +48,8 @@ public partial class App : Application
 
         RoutesViewModel routes = new RoutesViewModel(new SdrConfigClient(httpClient), new FirewallService(), new PingService(),
             new PingCache(PingCache.DefaultPath), settingsStore, settings);
-        MainViewModel main = new MainViewModel(routes, new SettingsViewModel(settingsStore, settings), new AboutViewModel(new UpdateChecker(httpClient)));
+        SettingsViewModel settingsViewModel = new SettingsViewModel(settingsStore, settings);
+        MainViewModel main = new MainViewModel(routes, settingsViewModel, new AboutViewModel(new UpdateChecker(httpClient)));
 
         MainWindow window = new MainWindow() { DataContext = main };
         // Closing covers the close button and Alt+F4; SessionEnding covers signing out and shutting down.
@@ -52,11 +65,69 @@ public partial class App : Application
         window.Closing += (sender, args) => CleanUp();
         SessionEnding += (sender, args) => CleanUp();
         MainWindow = window;
-        window.Show();
+
+        // Exit from the tray menu also works while the window has never been shown.
+        TrayIcon tray = new TrayIcon(window, routes, settingsViewModel, settingsStore, settings, () =>
+        {
+            CleanUp();
+            Shutdown();
+        });
+        Exit += (sender, args) => tray.Dispose();
+        ListenForShowRequests(tray);
+
+        // Started at sign-in: stay out of the way, in the tray or minimized on the taskbar.
+        if (e.Args.Contains(StartupTask.MinimizedArgument))
+        {
+            if (settings.MinimizeToTray) { tray.HideToTray(); }
+            else
+            {
+                window.WindowState = WindowState.Minimized;
+                window.Show();
+            }
+        }
+        else { window.Show(); }
 
         _ = main.About.CheckForUpdatesAsync();
+        _ = settingsViewModel.LoadStartWithWindowsAsync();
         await routes.InitializeAsync();
     }
+
+    bool TryBecomeTheOnlyInstance()
+    {
+        bool createdNew;
+        try
+        {
+            instanceMutex = new Mutex(true, InstanceName, out createdNew);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Held by an instance running with other rights (e.g. elevated): that one is the running instance.
+            createdNew = false;
+        }
+        if (createdNew) { return true; }
+
+        try
+        {
+            // This process was just started by the user, so it may hand the foreground to the running instance.
+            AllowSetForegroundWindow(AnyProcess);
+            using EventWaitHandle show = EventWaitHandle.OpenExisting(ShowEventName);
+            show.Set();
+        }
+        catch (Exception ex) when (ex is WaitHandleCannotBeOpenedException || ex is UnauthorizedAccessException) { }
+        return false;
+    }
+
+    // Brings the window back when the app is started again while it's already running (e.g. hidden in the tray).
+    void ListenForShowRequests(TrayIcon tray)
+    {
+        EventWaitHandle show = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
+        ThreadPool.RegisterWaitForSingleObject(show, (state, timedOut) => Dispatcher.BeginInvoke(tray.Restore), null, Timeout.Infinite, executeOnlyOnce: false);
+    }
+
+    const int AnyProcess = -1; // ASFW_ANY
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool AllowSetForegroundWindow(int processId);
 
     // Last resort: keep the app running and tell the user, instead of closing without a word.
     void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

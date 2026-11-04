@@ -1,3 +1,4 @@
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SteamRouteTool.Services;
@@ -16,6 +17,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         theme = settings.Theme;
         pingOnStartup = settings.PingOnStartup;
         unblockOnExit = settings.UnblockOnExit;
+        minimizeToTray = settings.MinimizeToTray;
     }
 
     [ObservableProperty]
@@ -26,6 +28,79 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.UnblockOnExit = value;
         store.Save(settings);
     }
+
+    [ObservableProperty]
+    bool minimizeToTray;
+
+    partial void OnMinimizeToTrayChanged(bool value)
+    {
+        settings.MinimizeToTray = value;
+        store.Save(settings);
+    }
+
+    // ----- Start with Windows -----
+
+    /// <summary>Whether the sign-in task exists. Read from Task Scheduler by <see cref="LoadStartWithWindowsAsync"/>, not from the settings file.</summary>
+    [ObservableProperty]
+    bool startWithWindows;
+
+    /// <summary>True while the task is being read or changed; the checkbox is disabled meanwhile.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanChangeStartup))]
+    bool isStartupBusy = true;
+
+    public bool CanChangeStartup => !IsStartupBusy;
+
+    bool loadingStartup;
+
+    /// <summary>Reads whether the task exists, and points it at this exe if the app has been moved since it was created.</summary>
+    public async Task LoadStartWithWindowsAsync()
+    {
+        try
+        {
+            string? registered = await Task.Run(StartupTask.GetRegisteredCommand);
+            loadingStartup = true;
+            StartWithWindows = registered != null;
+            loadingStartup = false;
+            if (registered != null && !string.Equals(registered, StartupTask.GetLaunchCommand().Command, StringComparison.OrdinalIgnoreCase))
+            {
+                await Task.Run(StartupTask.Enable);
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException || ex is System.ComponentModel.Win32Exception || ex is IOException || ex is UnauthorizedAccessException)
+        {
+            // Leave the checkbox as read; changing it reports any error.
+        }
+        finally
+        {
+            loadingStartup = false;
+            IsStartupBusy = false;
+        }
+    }
+
+    async partial void OnStartWithWindowsChanged(bool value)
+    {
+        if (loadingStartup) { return; }
+        IsStartupBusy = true;
+        try
+        {
+            await Task.Run(value ? StartupTask.Enable : StartupTask.Disable);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException || ex is System.ComponentModel.Win32Exception || ex is IOException || ex is UnauthorizedAccessException)
+        {
+            loadingStartup = true;
+            StartWithWindows = !value;
+            loadingStartup = false;
+            MessageBox.Show("Couldn't " + (value ? "turn on" : "turn off") + " starting with Windows:" + Environment.NewLine + ex.Message,
+                "Steam Route Tool", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            IsStartupBusy = false;
+        }
+    }
+
+    // ----- Appearance and other settings -----
 
     public IReadOnlyList<string> ThemeOptions { get; } = ["System", "Light", "Dark"];
     public string SettingsFolder => SettingsStore.DefaultDirectory;
