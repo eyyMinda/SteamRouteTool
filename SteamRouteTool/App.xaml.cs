@@ -74,7 +74,7 @@ public partial class App : Application
         MainWindow = window;
 
         // Exit from the tray menu also works while the window has never been shown.
-        TrayIcon tray = new TrayIcon(window, routes, settingsViewModel, settingsStore, settings, () =>
+        TrayIcon tray = new TrayIcon(window, routes, settingsViewModel, settingsStore, settings, () => main.SelectedPage = main.Pages[2], () =>
         {
             CleanUp();
             Shutdown();

@@ -277,8 +277,9 @@
   "Sidebar.GitHub": "GitHub 上的 eyyMinda",
 
   "Tray.Open": "打开 Steam Route Tool",
-  "Tray.Game": "游戏：{0}",
   "Tray.Preset": "预设：{0}",
+  "Tray.Status": "已屏蔽 {0} · 最低 {1} · 最高 {2}",
+  "Tray.StatusNoPing": "已屏蔽 {0}",
   "Tray.PresetNone": "无",
   "Tray.NoPresets": "还没有预设",
   "Tray.AutoSelect": "自动选择 · {0}",

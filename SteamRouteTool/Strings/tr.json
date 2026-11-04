@@ -277,8 +277,9 @@
   "Sidebar.GitHub": "GitHub'da eyyMinda",
 
   "Tray.Open": "Steam Route Tool'u aç",
-  "Tray.Game": "Oyun: {0}",
   "Tray.Preset": "Ön ayar: {0}",
+  "Tray.Status": "{0} engelli · en iyi {1} · en kötü {2}",
+  "Tray.StatusNoPing": "{0} engelli",
   "Tray.PresetNone": "yok",
   "Tray.NoPresets": "Henüz ön ayar yok",
   "Tray.AutoSelect": "Otomatik seç · {0}",

@@ -19,7 +19,8 @@ public sealed class TrayIcon : IDisposable
     readonly NotifyIcon icon = new NotifyIcon();
     WindowState restoreState = WindowState.Normal;
 
-    public TrayIcon(Window window, RoutesViewModel routes, SettingsViewModel settingsViewModel, SettingsStore store, AppSettings settings, Action exit)
+    public TrayIcon(Window window, RoutesViewModel routes, SettingsViewModel settingsViewModel, SettingsStore store, AppSettings settings,
+        Action openSettings, Action exit)
     {
         this.window = window;
         this.routes = routes;
@@ -27,25 +28,35 @@ public sealed class TrayIcon : IDisposable
         this.settings = settings;
 
         icon.Click += Restore;
-        icon.ContextMenuRequested += () => icon.ShowMenu(
-        [
-            new NotifyIcon.MenuItem(Loc.T("Tray.Open"), Restore, IsDefault: true),
-            null,
-            new NotifyIcon.MenuItem(Loc.T("Tray.Game", routes.SelectedGame.Name), Submenu: GetGameItems()),
-            new NotifyIcon.MenuItem(Loc.T("Tray.Preset", routes.SelectedPreset?.Name ?? Loc.T("Tray.PresetNone")), Submenu: GetPresetItems()),
-            new NotifyIcon.MenuItem(Loc.T("Tray.AutoSelect", routes.AutoSelectLabel), () => routes.ApplyAutoSelectCommand.Execute(null),
-                IsEnabled: routes.ApplyAutoSelectCommand.CanExecute(null)),
-            new NotifyIcon.MenuItem(Loc.T("Tray.UnblockAll"), () => routes.UnblockAllCommand.Execute(null), IsEnabled: routes.UnblockAllCommand.CanExecute(null)),
-            null,
-            new NotifyIcon.MenuItem(Loc.T("Tray.Exit"), exit)
-        ]);
+        // Grouped: open; what to play on (game, preset); actions; a status line (info only); settings and exit.
+        icon.ContextMenuRequested += () =>
+        {
+            List<NotifyIcon.MenuItem?> items =
+            [
+                new NotifyIcon.MenuItem(Loc.T("Tray.Open"), Restore, IsDefault: true),
+                null,
+                new NotifyIcon.MenuItem(routes.SelectedGame.Name, Submenu: GetGameItems()),
+                new NotifyIcon.MenuItem(Loc.T("Tray.Preset", routes.SelectedPreset?.Name ?? Loc.T("Tray.PresetNone")), Submenu: GetPresetItems()),
+                null,
+                new NotifyIcon.MenuItem(Loc.T("Tray.AutoSelect", routes.AutoSelectLabel), () => routes.ApplyAutoSelectCommand.Execute(null),
+                    IsEnabled: routes.ApplyAutoSelectCommand.CanExecute(null)),
+                new NotifyIcon.MenuItem(Loc.T("Tray.UnblockAll"), () => routes.UnblockAllCommand.Execute(null), IsEnabled: routes.UnblockAllCommand.CanExecute(null)),
+            ];
+            if (StatusLine() is string status) { items.AddRange([null, new NotifyIcon.MenuItem(status, IsEnabled: false)]); }
+            items.AddRange([null, new NotifyIcon.MenuItem(Loc.T("Nav.Settings"), () => { Restore(); openSettings(); }), new NotifyIcon.MenuItem(Loc.T("Tray.Exit"), exit)]);
+            icon.ShowMenu(items);
+        };
         icon.BalloonClick += Restore;
 
         UpdateText();
         Loc.Instance.Changed += UpdateText;
         routes.PropertyChanged += (sender, e) =>
         {
-            if (e.PropertyName == nameof(RoutesViewModel.BlockedSummary)) { UpdateText(); }
+            if (e.PropertyName is nameof(RoutesViewModel.BlockedSummary) or nameof(RoutesViewModel.SelectedPreset) or nameof(RoutesViewModel.SelectedGame)
+                or nameof(RoutesViewModel.BestPingText) or nameof(RoutesViewModel.WorstPingText))
+            {
+                UpdateText();
+            }
         };
         settingsViewModel.PropertyChanged += (sender, e) =>
         {
@@ -118,9 +129,24 @@ public sealed class TrayIcon : IDisposable
             .ToList();
     }
 
+    // The tooltip: the app, the game and preset, and the status line, one per line (Windows keeps up to 127 characters).
     void UpdateText()
     {
-        string blocked = routes.BlockedSummary;
-        icon.Text = blocked.Length == 0 ? "Steam Route Tool" : "Steam Route Tool · " + blocked;
+        if (StatusLine() is not string status)
+        {
+            icon.Text = "Steam Route Tool";
+            return;
+        }
+        string preset = Loc.T("Tray.Preset", routes.SelectedPreset?.Name ?? Loc.T("Tray.PresetNone"));
+        icon.Text = "Steam Route Tool\n" + routes.SelectedGame.Name + " · " + preset + "\n" + status;
+    }
+
+    // E.g. "40 blocked · best 12 ms · worst 27 ms", or null before the routes have loaded.
+    string? StatusLine()
+    {
+        if (routes.BlockedSummary.Length == 0) { return null; }
+        return routes.BestPingText == "–"
+            ? Loc.T("Tray.StatusNoPing", routes.BlockedRouteCount)
+            : Loc.T("Tray.Status", routes.BlockedRouteCount, routes.BestPingText, routes.WorstPingText);
     }
 }

@@ -277,8 +277,9 @@
   "Sidebar.GitHub": "eyyMinda na GitHubie",
 
   "Tray.Open": "Otwórz Steam Route Tool",
-  "Tray.Game": "Gra: {0}",
   "Tray.Preset": "Zestaw: {0}",
+  "Tray.Status": "Zablokowane: {0} · najlepszy {1} · najgorszy {2}",
+  "Tray.StatusNoPing": "Zablokowane: {0}",
   "Tray.PresetNone": "brak",
   "Tray.NoPresets": "Brak zestawów",
   "Tray.AutoSelect": "Wybór automatyczny · {0}",

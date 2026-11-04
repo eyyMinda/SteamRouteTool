@@ -3,6 +3,18 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.1.7] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Changed
+
+- **Tray tooltip** shows the game, the active preset and the status: e.g. "Counter-Strike 2 · Preset: Top 3" and "40 blocked · best 12 ms · worst 27 ms".
+- **Tray menu** is tidier and gives more at a glance:
+  - Grouped into open; game and preset; Auto select and Unblock all; a grey status line (blocked count, best and worst ping); Settings and Exit.
+  - The game item shows just the game's name (the submenu still ticks the current one).
+  - New **Settings** item opens the window on the Settings page.
+
 ## [2.1.6] - 2026-11-04
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._
