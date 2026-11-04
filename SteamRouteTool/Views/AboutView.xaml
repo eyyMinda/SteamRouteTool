@@ -33,12 +33,6 @@
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="{l:Tr About.Credits}" Style="{StaticResource SectionTitle}" />
-          <TextBlock l:RichText.Text="{l:Tr About.CreditFroody}" Style="{StaticResource BodyText}" Margin="0,0,0,2" />
-          <TextBlock Style="{StaticResource BodyText}">
-            <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static services:AppInfo.OriginalRepositoryUrl}">
-              <Run Text="{l:Tr About.OriginalProject}" />
-            </Hyperlink>
-          </TextBlock>
           <TextBlock l:RichText.Text="{l:Tr About.CreditEyyMinda}" Style="{StaticResource BodyText}" />
           <TextBlock Style="{StaticResource BodyText}">
             <Run Text="{l:Tr About.CreditIcon}" />
@@ -56,6 +50,7 @@
               <Run Text="{l:Tr About.ReadLicense}" />
             </Hyperlink>
           </TextBlock>
+          <TextBlock Text="{l:Tr About.BasedOn}" Style="{StaticResource SecondaryText}" Margin="0,0,0,6" />
           <TextBlock Text="{l:Tr About.Trademarks}" Style="{StaticResource SecondaryText}" />
         </StackPanel>
       </Border>

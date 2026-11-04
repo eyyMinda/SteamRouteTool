@@ -10,7 +10,6 @@ public static class AppInfo
     public const string ChangelogUrl = RepositoryUrl + "/blob/main/CHANGELOG.md";
     public const string IssuesUrl = RepositoryUrl + "/issues";
     public const string LicenseUrl = RepositoryUrl + "/blob/main/LICENSE";
-    public const string OriginalRepositoryUrl = "https://github.com/dfrood/SteamRouteTool";
     public const string AuthorUrl = "https://github.com/eyyMinda";
     public const string BuyMeACoffeeUrl = "https://buymeacoffee.com/eyyminda";
 
