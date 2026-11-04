@@ -1,4 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Services;
 
 namespace SteamRouteTool.ViewModels;
@@ -6,20 +8,23 @@ namespace SteamRouteTool.ViewModels;
 /// <summary>A page in the navigation bar. <see cref="Glyph"/> is a Segoe Fluent Icons character.</summary>
 public sealed partial class NavigationItem : ObservableObject
 {
-    public NavigationItem(string title, string glyph, object content)
+    public NavigationItem(string titleKey, string glyph, object content)
     {
-        Title = title;
+        TitleKey = titleKey;
         Glyph = glyph;
         Content = content;
     }
 
-    public string Title { get; }
+    public string TitleKey { get; }
+    public string Title => Loc.T(TitleKey);
     public string Glyph { get; }
     public object Content { get; }
 
     /// <summary>Pages are created once and only shown or hidden, so they keep their scroll position, sort and expanded rows.</summary>
     [ObservableProperty]
     bool isSelected;
+
+    public void RefreshTexts() => OnPropertyChanged(nameof(Title));
 
     // Screen readers (UI Automation) name list items by ToString().
     public override string ToString() => Title;
@@ -33,25 +38,33 @@ public sealed class HowToViewModel
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    public MainViewModel(RoutesViewModel routes, SettingsViewModel settings, AboutViewModel about)
+    public MainViewModel(RoutesViewModel routes, SettingsViewModel settings, AboutViewModel about, UpdatesViewModel updates)
     {
         Routes = routes;
         About = about;
+        Updates = updates;
         Pages =
         [
-            new NavigationItem("Routes", "", routes),
-            new NavigationItem("How to use", "", new HowToViewModel()),
-            new NavigationItem("Settings", "", settings),
-            new NavigationItem("About", "", about),
+            new NavigationItem("Nav.Routes", "", routes),
+            new NavigationItem("Nav.HowTo", "", new HowToViewModel()),
+            new NavigationItem("Nav.Settings", "", settings),
+            new NavigationItem("Nav.About", "", about),
         ];
         selectedPage = Pages[0];
         selectedPage.IsSelected = true;
+        Loc.Instance.Changed += () =>
+        {
+            foreach (NavigationItem page in Pages) { page.RefreshTexts(); }
+            OnPropertyChanged(nameof(VersionText));
+        };
     }
 
     public RoutesViewModel Routes { get; }
     public AboutViewModel About { get; }
+    /// <summary>For the "Update to …" button in the sidebar.</summary>
+    public UpdatesViewModel Updates { get; }
     public IReadOnlyList<NavigationItem> Pages { get; }
-    public string VersionText => "Version " + AppInfo.VersionText;
+    public string VersionText => Loc.T("Nav.Version", AppInfo.VersionText);
 
     [ObservableProperty]
     NavigationItem selectedPage;
@@ -60,4 +73,11 @@ public sealed partial class MainViewModel : ObservableObject
     {
         foreach (NavigationItem page in Pages) { page.IsSelected = page == value; }
     }
+
+    /// <summary>Opens Settings, where updates are installed.</summary>
+    [RelayCommand]
+    void GoToSettings() => SelectedPage = Pages[2];
+
+    [RelayCommand]
+    void OpenLink(string url) => Shell.Open(url);
 }

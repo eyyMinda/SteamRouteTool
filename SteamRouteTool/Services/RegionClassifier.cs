@@ -16,6 +16,9 @@ public static class RegionClassifier
     public const string Oceania = "Oceania";
     public const string Other = "Other";
 
+    /// <summary>The region's name in the app's language (the constants above are the internal names).</summary>
+    public static string GetDisplayName(string region) => Localization.Loc.T("Region." + region.Replace(" ", ""));
+
     static readonly (string Region, string[] Places)[] Places =
     {
         (Africa, ["South Africa", "Egypt", "Nigeria", "Kenya", "Morocco"]),

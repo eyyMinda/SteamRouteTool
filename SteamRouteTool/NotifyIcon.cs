@@ -119,6 +119,9 @@ public sealed class NotifyIcon : IDisposable
         }
     }
 
+    // Menus treat "&" as the start of a keyboard shortcut; texts such as preset names are shown as typed.
+    static string Escape(string text) => text.Replace("&", "&&");
+
     static void AppendItems(IntPtr menu, IReadOnlyList<MenuItem?> items, List<Action> actions)
     {
         foreach (MenuItem? item in items)
@@ -133,11 +136,11 @@ public sealed class NotifyIcon : IDisposable
             {
                 IntPtr submenu = CreatePopupMenu();
                 AppendItems(submenu, item.Submenu, actions);
-                AppendMenu(menu, MF_POPUP | flags, submenu, item.Text);
+                AppendMenu(menu, MF_POPUP | flags, submenu, Escape(item.Text));
                 continue;
             }
             actions.Add(item.Action ?? (() => { }));
-            AppendMenu(menu, MF_STRING | flags, actions.Count, item.Text);
+            AppendMenu(menu, MF_STRING | flags, actions.Count, Escape(item.Text));
             if (item.IsDefault) { SetMenuDefaultItem(menu, actions.Count, 0); }
         }
     }

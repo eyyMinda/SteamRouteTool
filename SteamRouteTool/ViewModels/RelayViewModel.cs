@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Models;
 using SteamRouteTool.Services;
 
@@ -15,13 +16,14 @@ public sealed partial class RelayViewModel : ObservableObject
         this.owner = owner;
         Route = route;
         Relay = relay;
-        Name = "Relay " + number;
+        Number = number;
     }
 
     public RouteViewModel Route { get; }
     public Relay Relay { get; }
-    public string Name { get; }
-    public string Endpoint => $"{Relay.Address} · ports {Relay.MinPort}-{Relay.MaxPort}";
+    public int Number { get; }
+    public string Name => Loc.T("Routes.RelayName", Number);
+    public string Endpoint => Loc.T("Routes.RelayEndpoint", Relay.Address, Relay.MinPort, Relay.MaxPort);
 
     public PingText Ping => owner.DescribePing([Relay]);
 
@@ -35,6 +37,12 @@ public sealed partial class RelayViewModel : ObservableObject
     void PingAgain()
     {
         owner.RequestPingRelay(Route, Relay);
+    }
+
+    public void RefreshTexts()
+    {
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(Endpoint));
     }
 
     public void Refresh()

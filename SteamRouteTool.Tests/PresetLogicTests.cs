@@ -111,4 +111,42 @@ public class PresetLogicTests
 
         Assert.Equal(expected, PresetLogic.Describe(preset));
     }
+
+    [Fact]
+    public void Capture_RemembersEveryRouteThatExisted()
+    {
+        Assert.Equal(["ams", "waw", "fra"], PresetLogic.Capture("Any", Pops, new HashSet<Relay>()).KnownRoutes);
+    }
+
+    [Fact]
+    public void Resolve_BlocksRoutesAddedAfterThePresetOnlyWhenAsked()
+    {
+        GamePreset warsawOnly = PresetLogic.Capture("Warsaw only", [Ams, Waw], new HashSet<Relay> { Ams1, Ams2 });
+
+        Assert.DoesNotContain(Fra1, PresetLogic.Resolve(warsawOnly, Pops));
+        Assert.Contains(Fra1, PresetLogic.Resolve(warsawOnly, Pops, blockNewRoutes: true));
+        Assert.DoesNotContain(Waw1, PresetLogic.Resolve(warsawOnly, Pops, blockNewRoutes: true));
+    }
+
+    [Fact]
+    public void Resolve_LeavesUnknownRoutesAloneForPresetsSavedBeforeRoutesWereRemembered()
+    {
+        GamePreset old = new GamePreset { BlockedRoutes = ["ams"] };
+
+        Assert.Equal(new HashSet<Relay> { Ams1, Ams2 }, PresetLogic.Resolve(old, Pops, blockNewRoutes: true));
+    }
+
+    [Fact]
+    public void FindNewRoutes_ListsRoutesNotSeenBefore()
+    {
+        Assert.Equal([Fra], PresetLogic.FindNewRoutes(["ams", "waw"], Pops));
+        Assert.Empty(PresetLogic.FindNewRoutes(["ams", "waw", "fra"], Pops));
+    }
+
+    [Fact]
+    public void FindNewRoutes_ReportsNothingTheFirstTime()
+    {
+        Assert.Empty(PresetLogic.FindNewRoutes(null, Pops));
+        Assert.Empty(PresetLogic.FindNewRoutes([], Pops));
+    }
 }

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SteamRouteTool.Localization;
 using SteamRouteTool.Models;
 using SteamRouteTool.Services;
 
@@ -23,10 +24,22 @@ public sealed partial class RouteViewModel : ObservableObject
     public Pop Pop { get; }
     public IReadOnlyList<RelayViewModel> Relays { get; }
     public string Name => Pop.Description;
+
+    /// <summary>The place without its country, e.g. "Stockholm - Kista" for "Stockholm - Kista (Sweden)".</summary>
+    public string City => Pop.Description.LastIndexOf(" (", StringComparison.Ordinal) is int index and > 0 ? Pop.Description[..index] : Pop.Description;
+
+    /// <summary>The country (or US state) in the description's parentheses, or empty.</summary>
+    public string Country => Pop.Description.LastIndexOf(" (", StringComparison.Ordinal) is int index and > 0 && Pop.Description.EndsWith(')')
+        ? Pop.Description[(index + 2)..^1] : "";
     public string Code => Pop.Code;
+    /// <summary>The internal (English) region name, used for filtering.</summary>
     public string Region => Pop.Region;
+    /// <summary>The region in the app's language, shown and grouped by.</summary>
+    public string RegionName => RegionClassifier.GetDisplayName(Pop.Region);
     public int RegionOrder { get; }
     public int RelayCount => Pop.Relays.Count;
+    /// <summary>E.g. "4 relays".</summary>
+    public string RelayCountText => Loc.Plural("Routes.RelayCount", RelayCount);
     public bool HasMultipleRelays => Pop.Relays.Count > 1;
 
     /// <summary>Whether each relay is shown as its own row, so relays can be blocked individually.</summary>
@@ -52,12 +65,21 @@ public sealed partial class RouteViewModel : ObservableObject
     public int BlockedSortValue => IsBlocked switch { true => 0, null => 1, false => 2 };
 
     /// <summary>E.g. " · 2 of 4 relays blocked" for a partly blocked route, empty otherwise.</summary>
-    public string BlockedDetail => IsBlocked == null ? $" · {Pop.Relays.Count(owner.IsRelayBlocked)} of {RelayCount} relays blocked" : "";
+    public string BlockedDetail => IsBlocked == null ? Loc.T("Routes.PartlyBlocked", Pop.Relays.Count(owner.IsRelayBlocked), RelayCount) : "";
 
     [RelayCommand]
     void PingAgain()
     {
         owner.RequestPingRoute(this);
+    }
+
+    /// <summary>Refreshes the texts after the language changed.</summary>
+    public void RefreshTexts()
+    {
+        OnPropertyChanged(nameof(RegionName));
+        OnPropertyChanged(nameof(RelayCountText));
+        foreach (RelayViewModel relay in Relays) { relay.RefreshTexts(); }
+        Refresh();
     }
 
     public void Refresh()

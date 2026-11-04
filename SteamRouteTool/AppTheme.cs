@@ -21,6 +21,8 @@ public static class AppTheme
             "Dark" => ThemeMode.Dark,
             _ => ThemeMode.System,
         };
+        // Glows (Themes/Gaming.xaml) use the accent colour as a fixed value, since effects in templates can't follow resources.
+        Application.Current.Resources["AccentGlowColor"] = SystemColors.AccentColor;
         UpdateColors();
     }
 

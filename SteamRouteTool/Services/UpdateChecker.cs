@@ -2,7 +2,8 @@ using System.Text.Json.Nodes;
 
 namespace SteamRouteTool.Services;
 
-public sealed record ReleaseInfo(Version Version, string Url);
+/// <summary>A published release: its version, its page, and its downloads (file name → download URL).</summary>
+public sealed record ReleaseInfo(Version Version, string Url, IReadOnlyDictionary<string, string> Assets);
 
 /// <summary>Looks up the latest published release on GitHub.</summary>
 public sealed class UpdateChecker
@@ -36,7 +37,14 @@ public sealed class UpdateChecker
             string? tag = release?["tag_name"]?.GetValue<string>();
             string? url = release?["html_url"]?.GetValue<string>();
             if (tag == null || url == null || !Version.TryParse(tag.TrimStart('v'), out Version? version)) { return null; }
-            return new ReleaseInfo(version, url);
+            Dictionary<string, string> assets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (JsonNode? asset in release?["assets"]?.AsArray() ?? new JsonArray())
+            {
+                string? name = asset?["name"]?.GetValue<string>();
+                string? download = asset?["browser_download_url"]?.GetValue<string>();
+                if (name != null && download != null) { assets[name] = download; }
+            }
+            return new ReleaseInfo(version, url, assets);
         }
         catch (Exception ex) when (ex is System.Text.Json.JsonException || ex is InvalidOperationException)
         {

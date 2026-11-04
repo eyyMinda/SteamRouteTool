@@ -24,6 +24,34 @@ public sealed class FirewallService
     const int NET_FW_RULE_DIR_OUT = 2;
     const int NET_FW_ACTION_BLOCK = 0;
 
+    // NET_FW_PROFILE_TYPE2: the network profiles Windows Firewall has separate on/off switches for.
+    public const int ProfileDomain = 1;
+    public const int ProfilePrivate = 2;
+    public const int ProfilePublic = 4;
+
+    /// <summary>
+    /// The network profiles that are active now but have Windows Firewall turned off (a bit mask of the Profile*
+    /// constants, 0 if none). With the firewall off, this tool's rules have no effect. Reading works without administrator rights.
+    /// </summary>
+    public int GetDisabledActiveProfiles()
+    {
+        object policy = GetPolicy();
+        int active = ((dynamic)policy).CurrentProfileTypes;
+        // FirewallEnabled is an indexed COM property, which C#'s dynamic can't read; late-bound reflection can.
+        return GetDisabledActiveProfiles(active, profile => (bool)policy.GetType().InvokeMember("FirewallEnabled",
+            System.Reflection.BindingFlags.GetProperty, null, policy, [profile])!);
+    }
+
+    internal static int GetDisabledActiveProfiles(int activeProfiles, Func<int, bool> isEnabled)
+    {
+        int disabled = 0;
+        foreach (int profile in new[] { ProfileDomain, ProfilePrivate, ProfilePublic })
+        {
+            if ((activeProfiles & profile) != 0 && !isEnabled(profile)) { disabled |= profile; }
+        }
+        return disabled;
+    }
+
     /// <summary>Whether an exception means Windows Firewall rejected a change (not running as administrator, service stopped, ...).</summary>
     public static bool IsFirewallError(Exception ex)
     {

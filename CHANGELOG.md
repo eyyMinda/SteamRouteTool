@@ -3,6 +3,158 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.2.0] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Apply a preset when a game starts.** In the presets panel (**Save current**), choose per game which preset to apply when it starts. While the app runs (for example in the tray) it notices Counter-Strike 2, Dota 2 or Deadlock starting, switches to that game and applies the preset, with a notification. No extra components: it checks the running processes every few seconds.
+- **Close to tray** (Settings → Startup and tray, on by default): the close button and Alt+F4 keep the app running in the tray. **Exit** in the tray menu really exits; signing out, shutting down and updates still close it properly.
+- Releases are ready for **code signing** (SignPath) and **winget**: both switch on once their accounts are set up, without further code changes.
+
+### Fixed
+
+- Updating a preset (saving over it) now also updates the locations it knows about, so "Block new locations automatically" doesn't treat them as new.
+
+## [2.1.7] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Changed
+
+- **Tray tooltip** shows the game, the active preset and the status: e.g. "Counter-Strike 2 · Preset: Top 3" and "40 blocked · best 12 ms · worst 27 ms".
+- **Tray menu** is tidier and gives more at a glance:
+  - Grouped into open; game and preset; Auto select and Unblock all; a grey status line (blocked count, best and worst ping); Settings and Exit.
+  - The game item shows just the game's name (the submenu still ticks the current one).
+  - New **Settings** item opens the window on the Settings page.
+
+## [2.1.6] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Keyboard shortcuts**, from any page: **Ctrl+F** search the routes, **F5** ping all, **Ctrl+1 / 2 / 3** switch to Counter-Strike 2, Dota 2 or Deadlock. Listed on the How to use page; Ping all's tooltip mentions F5.
+
+### Changed
+
+- The Routes page remembers the region, the status filter and the sort between sessions (the search starts empty).
+
+## [2.1.5] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **New locations from Valve:** the app remembers each game's locations and tells you when Valve adds one ("Valve added a new location: …. It's allowed."), with **Block** to block it right away.
+- **Block new locations automatically** (Settings → Routes, off by default): new locations are blocked as soon as they appear, and presets also block locations that didn't exist when they were saved, so a preset like "Warsaw only" stays that way.
+
+### Fixed
+
+- When the list is sorted by ping, it re-sorts after **Ping all** finishes.
+
+## [2.1.4] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Warning when Windows Firewall is off.** With the firewall off for an active network (domain, private or public), the tool's rules have no effect even though routes show as blocked. The Routes page now says so, with **Open firewall settings** and **Check again**. It checks at startup, on Refresh and whenever you come back to the window.
+
+### Changed
+
+- **Minimize to tray** is on by default for new installs (existing settings are kept).
+
+## [2.1.3] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Fixed
+
+- In a large or maximized window, How to use, Settings and About are centered and up to 1024 px wide instead of sticking to the left.
+- Small windows: the Routes page switches to a compact layout so the server list keeps its room:
+  - Presets become a dropdown ("Choose a preset") next to Save current, and Auto select a compact pill (− N + and Auto select).
+  - The region chips become a list, and server rows drop the relay count so they fit on one line.
+  - The game tabs stay as long as they fit beside the headline numbers; when they don't, a game dropdown takes their place. The numbers get smaller.
+- The hint for having no presets yet no longer says to "save them above".
+
+## [2.1.2] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Changed
+
+- **A new Routes page**, bolder and easier to use:
+  - Big game tabs, and headline numbers: routes blocked and allowed, the **best ping** and the **worst ping** you still allow (coloured by speed; hover for the location).
+  - **Presets** as chips: click one to apply it (the active one glows), **Save current** to save or manage them.
+  - **Auto select** as its own card: keep − N +, Apply (hover for a preview).
+  - Search, a **sort** list (region, name, ping, status), **Ping all**, and a ⋯ menu for refresh, block all except shown, unblock all, block all, group by region and clear filters.
+  - Regions as chips and an All / Blocked / Not blocked switch.
+  - Servers as rounded rows: a ping colour bar, city and country, a ping pill (click to ping again) and an **Allowed / Blocked / Partly** pill to click instead of a checkbox; expand a row for single relays.
+- The How to use page describes the new controls.
+
+## [2.1.1] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Updates in one click:** a new **Updates** section in Settings shows your version and checks GitHub for a newer one.
+  - **Update now** downloads the matching exe (the normal or the small one), verifies it against the release's `SHA256SUMS.txt`, replaces the running exe and restarts. Settings, presets and blocked routes are kept.
+  - **Check for updates automatically** (on by default) checks when the app starts and once a day; nothing is installed without a click.
+  - When a new version is found, an **Update to x.y.z** button appears at the bottom left; while the app is in the tray, a notification says so.
+- **Buy me a coffee** and GitHub icons next to the version at the bottom left (their names show on hover).
+
+### Changed
+
+- **How to use** is easier to take in: a quick start of four step cards (with the ping colors), a short note on what to do when you're done, then the details and troubleshooting as collapsible sections you open when needed.
+- **Common questions** on the How to use page: VAC safety, why administrator rights are needed, whether it lowers ping, longer queues, which games and modes are affected (and that FACEIT and community servers aren't), and privacy.
+- Checking for updates moved from the About page to Settings.
+
+### Fixed
+
+- The "Ping again" tooltip on ping values is now translated.
+
+## [2.1.0] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- A second, small download (about 1 MB) for PCs with the .NET 10 Desktop Runtime: `SteamRouteTool-<version>-win-x64-small.exe`. The self-contained exe stays the default.
+
+### Changed
+
+- **Settings** are organized like Windows Settings: grouped under General, Routes, Startup and tray, and Files and firewall, one row per setting with an icon, a short description and its control. On/off settings use switches; hover a setting for the full explanation.
+- The download is about 3.4 MB smaller (65.1 → 61.7 MB): .NET's own translated framework messages are no longer included (the app has its own translations).
+
+## [2.0.9] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Languages:** the whole app (pages, help, messages, tray menu and notifications) is available in English, Deutsch, Español, Français, Polski, Português (Brasil), Русский, Türkçe and 简体中文.
+  - Choose it in **Settings → Language**; it switches instantly, without restarting. English is the default.
+  - Route location names (e.g. "Amsterdam (Netherlands)") come from Steam and stay in English.
+  - Corrections to the translations are welcome: the texts are in `SteamRouteTool/Strings/<language>.json`.
+
+## [2.0.8] - 2026-11-03
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- The tray icon's menu now controls the app without opening the window:
+  - **Game:** switch between Counter-Strike 2, Dota 2 and Deadlock (the current game is ticked and shown in the menu).
+  - **Preset:** shows the active preset and switches presets for the current game.
+  - **Auto select:** keeps the fastest routes, as on the Routes page.
+
+### Fixed
+
+- Preset names containing "&" are shown correctly in the tray menu.
+
 ## [2.0.7] - 2026-11-03
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

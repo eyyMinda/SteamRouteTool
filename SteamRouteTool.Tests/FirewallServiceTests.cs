@@ -162,4 +162,25 @@ public class FirewallServiceTests
         Assert.Equal(["SteamRouteTool-UDP-ams", "SteamRouteTool-UDP-ams"], toRemove);
         Assert.Equal([desired[0]], toAdd);
     }
+
+    [Fact]
+    public void GetDisabledActiveProfiles_ReportsOnlyActiveProfilesThatAreOff()
+    {
+        // Private and public active; the firewall is off for public and for the (inactive) domain profile.
+        int active = FirewallService.ProfilePrivate | FirewallService.ProfilePublic;
+        bool IsEnabled(int profile) => profile == FirewallService.ProfilePrivate;
+
+        Assert.Equal(FirewallService.ProfilePublic, FirewallService.GetDisabledActiveProfiles(active, IsEnabled));
+        Assert.Equal(0, FirewallService.GetDisabledActiveProfiles(active, profile => true));
+    }
+
+    [Fact]
+    public void GetDisabledActiveProfiles_ReadsTheRealFirewall()
+    {
+        // Reading the firewall state works without administrator rights; this catches a broken COM call, which the app
+        // would otherwise treat as "unknown" and never warn.
+        int disabled = new FirewallService().GetDisabledActiveProfiles();
+
+        Assert.InRange(disabled, 0, FirewallService.ProfileDomain | FirewallService.ProfilePrivate | FirewallService.ProfilePublic);
+    }
 }
