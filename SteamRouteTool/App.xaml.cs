@@ -67,18 +67,44 @@ public partial class App : Application
             routes.SavePingCache();
             if (settings.UnblockOnExit) { routes.RemoveRulesOnExit(); }
         }
-        window.Closing += (sender, args) => CleanUp();
+        // With "close to tray", the close button (and Alt+F4) hides the window; the app really exits from the tray menu,
+        // when Windows signs out or shuts down, and when an update restarts it.
+        window.Closing += (sender, args) =>
+        {
+            if (settings.CloseToTray && !exiting && trayIcon != null)
+            {
+                args.Cancel = true;
+                trayIcon.HideToTray();
+                return;
+            }
+            CleanUp();
+        };
         window.Activated += (sender, args) => _ = routes.CheckFirewallAsync();
-        SessionEnding += (sender, args) => CleanUp();
+        SessionEnding += (sender, args) =>
+        {
+            exiting = true;
+            CleanUp();
+        };
         cleanUp = CleanUp;
         MainWindow = window;
 
         // Exit from the tray menu also works while the window has never been shown.
         TrayIcon tray = new TrayIcon(window, routes, settingsViewModel, settingsStore, settings, () => main.SelectedPage = main.Pages[2], () =>
         {
+            exiting = true;
             CleanUp();
             Shutdown();
         });
+        trayIcon = tray;
+
+        // Apply the chosen preset when a game starts (the app usually waits in the tray for this).
+        GameWatcher watcher = new GameWatcher();
+        watcher.GameStarted += game => Dispatcher.BeginInvoke(async () =>
+        {
+            string? applied = await routes.ApplyPresetForStartedGameAsync(game);
+            if (applied != null && !window.IsVisible) { tray.ShowNotification(game.Name, applied); }
+        });
+        Exit += (sender, args) => watcher.Dispose();
         Exit += (sender, args) => tray.Dispose();
         ListenForShowRequests(tray);
         // In the tray, a new version is announced with a notification; with the window open, the sidebar shows it.
@@ -107,11 +133,16 @@ public partial class App : Application
     // Set once the window exists: saves state and, with "unblock on exit", removes the rules.
     Action? cleanUp;
 
+    // True once the app is really exiting, so "close to tray" doesn't stop it.
+    bool exiting;
+    TrayIcon? trayIcon;
+
     // The verified new exe is put in place first, so a failure leaves this copy running as it was; then this copy closes
     // like on exit and starts the new one (which only becomes the running instance once this one has let go).
     void InstallAndRestart(string newExePath)
     {
         Updater.Swap(newExePath);
+        exiting = true;
         cleanUp?.Invoke();
         instanceMutex?.ReleaseMutex();
         instanceMutex?.Dispose();

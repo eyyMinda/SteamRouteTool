@@ -266,6 +266,17 @@
       <Expander Style="{StaticResource Topic}">
         <Expander.Header>
           <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE768;" Style="{StaticResource Icon}" FontSize="16" Width="28" VerticalAlignment="Center" />
+            <TextBlock Text="{l:Tr HowTo.AutoPreset}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Expander.Header>
+        <StackPanel Margin="28,0,0,0">
+          <TextBlock l:RichText.Text="{l:Tr HowTo.AutoPresetText}" Style="{StaticResource TopicBody}" />
+        </StackPanel>
+      </Expander>
+      <Expander Style="{StaticResource Topic}">
+        <Expander.Header>
+          <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE7FC;" Style="{StaticResource Icon}" FontSize="16" Width="28" VerticalAlignment="Center" />
             <TextBlock Text="{l:Tr HowTo.Profiles}" VerticalAlignment="Center" />
           </StackPanel>
@@ -297,6 +308,7 @@
         <StackPanel Margin="28,0,0,0">
           <TextBlock l:RichText.Text="{l:Tr HowTo.Background1}" Style="{StaticResource TopicBody}" />
           <TextBlock l:RichText.Text="{l:Tr HowTo.Background2}" Style="{StaticResource TopicBody}" />
+          <TextBlock l:RichText.Text="{l:Tr HowTo.Background3}" Style="{StaticResource TopicBody}" />
         </StackPanel>
       </Expander>
       <Expander Style="{StaticResource Topic}">

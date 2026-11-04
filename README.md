@@ -4,7 +4,7 @@ Choose which Valve relay locations your games can connect to.
 
 Counter-Strike 2, Dota 2 and Deadlock connect you to game servers through Valve's relay network (Steam Datagram Relay). Steam Route Tool blocks the relay locations you don't want with Windows Firewall, so matchmaking only puts you on the servers you choose, for example only nearby ones.
 
-Current version: **2.1.7**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
+Current version: **2.2.0**. See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ![Steam Route Tool: the Routes page with game tabs, presets, Auto select and the server list](docs/screenshot.png)
 
@@ -30,6 +30,7 @@ Requirements:
 - **Sort and filter:** search by name, code or region; filter by region or blocked state; sort by region, name, ping or status. The top shows routes blocked and allowed, and the best and worst ping you still allow.
 - **Fast, reliable pings:** a quick round fills the list in a second or two; anything that didn't answer is retried one at a time for networks that drop parallel pings. Last session's pings are shown straight away.
 - **Presets:** save the blocked routes under your own names per game (e.g. "EU blocked", "Warsaw only") and switch between them from the Routes page or the tray icon, with Undo.
+- **Apply a preset when a game starts:** pick a preset per game, and while the app runs (e.g. in the tray) it's applied as soon as Counter-Strike 2, Dota 2 or Deadlock starts.
 - **Game profiles:** each game remembers its blocked routes and applies them when you switch games.
 - **Block only while the app is open** (optional): remove all rules when the app closes and re-apply your selection on the next start.
 - **Runs in the background** (optional): minimize to the notification area instead of the taskbar, and start with Windows (minimized, without an administrator prompt).
@@ -57,6 +58,7 @@ Settings are grouped like Windows Settings; hover a setting for a longer explana
   - **Unblock all routes when closing:** routes are only blocked while the app is open. Your selection is kept and applied again on the next start.
 - **Startup and tray:**
   - **Start with Windows:** starts the app minimized when you sign in, through a Task Scheduler task (named `SteamRouteTool`) that runs it with administrator rights, so there's no prompt.
+  - **Close to tray** (on by default): the close button keeps the app running in the tray; exit from the tray menu.
   - **Minimize to tray** (on by default): minimizing hides the window from the taskbar and keeps an icon in the notification area. Click it to open the window; right-click it to switch games and presets, run Auto select, unblock all routes or exit. The close button still exits.
 - **Updates:** check now, install a newer version, and turn automatic checks on or off.
 - **Files and firewall:** shortcuts to the folder with your settings and game profiles, and to Windows Defender Firewall, where the rules can be inspected.

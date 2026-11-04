@@ -40,6 +40,14 @@
           <TextBlock Text="{Binding PresetMessage}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                      Visibility="{Binding PresetMessage, Converter={StaticResource VisibleWhen}}" />
 
+          <TextBlock Text="{l:Tr AutoPreset.Title}" FontWeight="SemiBold" Margin="0,16,0,0" />
+          <TextBlock Text="{l:Tr AutoPreset.Description}" Style="{StaticResource SecondaryText}" />
+          <DockPanel Margin="0,8,0,0">
+            <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding AutoPresetChoices}" SelectedValuePath="Key" DisplayMemberPath="Text"
+                      SelectedValue="{Binding AutoPresetName}" Width="190" AutomationProperties.Name="Preset when the game starts" />
+            <TextBlock Text="{Binding AutoPresetLabel}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" />
+          </DockPanel>
+
           <TextBlock Text="{Binding PresetsTitle}" FontWeight="SemiBold" Margin="0,16,0,0" />
           <TextBlock Text="{l:Tr Presets.Empty}" Style="{StaticResource SecondaryText}"
                      Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />

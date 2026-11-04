@@ -3,6 +3,20 @@
 All notable changes to SteamRouteTool are documented here.
 Versions follow `MAJOR.MINOR.PATCH`; every release bumps at least the patch number.
 
+## [2.2.0] - 2026-11-04
+
+_Updated by [eyyMinda](https://github.com/eyyMinda)._
+
+### Added
+
+- **Apply a preset when a game starts.** In the presets panel (**Save current**), choose per game which preset to apply when it starts. While the app runs (for example in the tray) it notices Counter-Strike 2, Dota 2 or Deadlock starting, switches to that game and applies the preset, with a notification. No extra components: it checks the running processes every few seconds.
+- **Close to tray** (Settings → Startup and tray, on by default): the close button and Alt+F4 keep the app running in the tray. **Exit** in the tray menu really exits; signing out, shutting down and updates still close it properly.
+- Releases are ready for **code signing** (SignPath) and **winget**: both switch on once their accounts are set up, without further code changes.
+
+### Fixed
+
+- Updating a preset (saving over it) now also updates the locations it knows about, so "Block new locations automatically" doesn't treat them as new.
+
 ## [2.1.7] - 2026-11-04
 
 _Updated by [eyyMinda](https://github.com/eyyMinda)._

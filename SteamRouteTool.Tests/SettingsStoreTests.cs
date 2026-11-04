@@ -16,7 +16,8 @@ public sealed class SettingsStoreTests : IDisposable
     [Fact]
     public void Save_ThenLoad_KeepsSettingsAndGameProfiles()
     {
-        AppSettings settings = new AppSettings { Theme = "Dark", PingOnStartup = false, GroupByRegion = false, UnblockOnExit = true, MinimizeToTray = true, CheckForUpdates = false, BlockNewRoutes = true, RegionFilter = "Europe", StatusFilter = "Blocked", SortBy = "Ping", LastAppId = 570 };
+        AppSettings settings = new AppSettings { Theme = "Dark", PingOnStartup = false, GroupByRegion = false, UnblockOnExit = true, MinimizeToTray = true, CheckForUpdates = false, BlockNewRoutes = true, RegionFilter = "Europe", StatusFilter = "Blocked", SortBy = "Ping", CloseToTray = false, LastAppId = 570 };
+        settings.AutoPresets[730] = "Warsaw only";
         settings.Profiles[730] = new GameProfile { BlockedRelays = ["155.133.248.36", "155.133.248.37"] };
         settings.Profiles[570] = new GameProfile();
         settings.Presets[730] = [new GamePreset { Name = "Warsaw only", BlockedRoutes = ["ams", "fra"], BlockedRelays = ["155.133.230.50"] }];
@@ -31,6 +32,8 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.True(loaded.MinimizeToTray);
         Assert.False(loaded.CheckForUpdates);
         Assert.True(loaded.BlockNewRoutes);
+        Assert.False(loaded.CloseToTray);
+        Assert.Equal("Warsaw only", loaded.AutoPresets[730]);
         Assert.Equal(("Europe", "Blocked", "Ping"), (loaded.RegionFilter, loaded.StatusFilter, loaded.SortBy));
         Assert.Equal(570, loaded.LastAppId);
         Assert.Equal(["155.133.248.36", "155.133.248.37"], loaded.Profiles[730].BlockedRelays);
@@ -60,5 +63,6 @@ public sealed class SettingsStoreTests : IDisposable
     public void NewSettings_MinimizeToTray()
     {
         Assert.True(new AppSettings().MinimizeToTray);
+        Assert.True(new AppSettings().CloseToTray);
     }
 }

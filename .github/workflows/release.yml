@@ -51,6 +51,41 @@ jobs:
           -p:DebugType=none
           -o publish-small
 
+      # Code signing with SignPath (free for open source). Skipped until the repository variable SIGNPATH_ORGANIZATION_ID
+      # (and the other SIGNPATH_* variables and the SIGNPATH_API_TOKEN secret) are set up; then both exes are signed
+      # before the checksums are written, so SHA256SUMS.txt and the in-app updater match the signed files.
+      - name: Upload unsigned exes for signing
+        id: unsigned
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned
+          path: |
+            publish/SteamRouteTool.exe
+            publish-small/SteamRouteTool.exe
+
+      - name: Sign with SignPath
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Use the signed exes
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        shell: pwsh
+        run: |
+          Copy-Item signed/publish/SteamRouteTool.exe publish/SteamRouteTool.exe -Force
+          Copy-Item signed/publish-small/SteamRouteTool.exe publish-small/SteamRouteTool.exe -Force
+          $signature = Get-AuthenticodeSignature publish/SteamRouteTool.exe
+          if ($signature.Status -ne 'Valid') { throw "The signed exe's signature is $($signature.Status)." }
+
       - name: Package and write release notes
         shell: pwsh
         env:
@@ -102,3 +137,21 @@ jobs:
             Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } | ForEach-Object { [version]$_.Substring(1) }
           $isLatest = -not ($released | Where-Object { $_ -gt [version]$env:VERSION })
           gh release create $env:TAG release/* --title "SteamRouteTool $env:VERSION" --notes-file notes.md "--latest=$($isLatest.ToString().ToLower())"
+
+  # Updates the winget package (winget install eyyMinda.SteamRouteTool) with a pull request to microsoft/winget-pkgs.
+  # Needs the WINGET_TOKEN secret (a classic token with public_repo, from an account with a fork of winget-pkgs) and an
+  # existing package, so the first version is submitted by hand. Skipped while the secret isn't set; never for 1.x fixes.
+  winget:
+    needs: release
+    runs-on: windows-latest
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - name: Submit to winget
+        if: ${{ env.WINGET_TOKEN != '' && !startsWith(github.ref_name, 'v1.') }}
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: eyyMinda.SteamRouteTool
+          installers-regex: '-win-x64\.exe$'
+          max-versions-to-keep: 5
+          token: ${{ secrets.WINGET_TOKEN }}

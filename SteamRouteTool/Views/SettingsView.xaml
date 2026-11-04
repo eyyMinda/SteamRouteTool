@@ -138,6 +138,21 @@
             <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
                       IsChecked="{Binding MinimizeToTray}" AutomationProperties.Name="Minimize to tray" />
           </Grid>
+          <Border Style="{StaticResource SettingsDivider}" />
+          <Grid Style="{StaticResource SettingsRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE8BB;" Style="{StaticResource RowIcon}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{l:Tr Settings.CloseToTray}" />
+              <TextBlock Text="{l:Tr Settings.CloseToTrayDescription}" Style="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" Margin="24,0,0,0" VerticalAlignment="Center"
+                      IsChecked="{Binding CloseToTray}" AutomationProperties.Name="Close to tray" />
+          </Grid>
         </StackPanel>
       </Border>
 

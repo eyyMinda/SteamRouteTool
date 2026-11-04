@@ -20,6 +20,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         pingOnStartup = settings.PingOnStartup;
         unblockOnExit = settings.UnblockOnExit;
         minimizeToTray = settings.MinimizeToTray;
+        closeToTray = settings.CloseToTray;
         blockNewRoutes = settings.BlockNewRoutes;
         language = Loc.Languages.FirstOrDefault(info => info.Code == settings.Language) ?? Loc.Languages[0];
     }
@@ -59,6 +60,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.BlockNewRoutes = value;
         store.Save(settings);
         BlockNewRoutesChanged?.Invoke();
+    }
+
+    [ObservableProperty]
+    bool closeToTray;
+
+    partial void OnCloseToTrayChanged(bool value)
+    {
+        settings.CloseToTray = value;
+        store.Save(settings);
     }
 
     [ObservableProperty]

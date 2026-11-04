@@ -20,6 +20,10 @@ public sealed class AppSettings
     public bool UnblockOnExit { get; set; }
     /// <summary>Minimizing hides the window to an icon in the notification area instead of the taskbar.</summary>
     public bool MinimizeToTray { get; set; } = true;
+    /// <summary>The close button hides the window to the tray instead of exiting (Exit is in the tray menu).</summary>
+    public bool CloseToTray { get; set; } = true;
+    /// <summary>Per game (by app ID): the name of the preset to apply when the game starts.</summary>
+    public Dictionary<int, string> AutoPresets { get; set; } = new Dictionary<int, string>();
     /// <summary>Whether the "still running in the tray" notification has been shown once.</summary>
     public bool TrayHintShown { get; set; }
     /// <summary>How many of the fastest routes Auto select keeps.</summary>

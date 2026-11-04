@@ -72,6 +72,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     void OnLanguageChanged()
     {
         UpdateFirewallWarning();
+        UpdateAutoPresetChoices();
         DismissMessages();
         PresetMessage = null;
         foreach (RouteViewModel route in Routes) { route.RefreshTexts(); }
@@ -82,6 +83,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         OnPropertyChanged(nameof(AutoSelectLabel));
         OnPropertyChanged(nameof(SavePresetLabel));
         OnPropertyChanged(nameof(PresetsTitle));
+        UpdateAutoPresetChoices();
     }
 
     public ObservableCollection<RouteViewModel> Routes { get; } = new ObservableCollection<RouteViewModel>();
@@ -227,8 +229,11 @@ public sealed partial class RoutesViewModel : ObservableObject
         OnPropertyChanged(nameof(PresetsTitle));
         settings.LastAppId = value.AppId;
         settingsStore.Save(settings);
-        if (initialized) { _ = LoadGameAsync(value, fromFirewall: false); }
+        if (initialized) { currentLoad = LoadGameAsync(value, fromFirewall: false); }
     }
+
+    // The latest game load, so applying a preset for a game that just started can wait for its routes.
+    Task currentLoad = Task.CompletedTask;
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     Task RefreshAsync()
@@ -760,6 +765,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         OnPropertyChanged(nameof(SavePresetLabel));
         SavePresetCommand.NotifyCanExecuteChanged();
         PresetMessage = null;
+        UpdateAutoPresetChoices();
     }
 
     // Shows which preset (if any) matches the blocked routes, without applying it.
@@ -803,6 +809,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         {
             existing.Model.BlockedRoutes = captured.BlockedRoutes;
             existing.Model.BlockedRelays = captured.BlockedRelays;
+            existing.Model.KnownRoutes = captured.KnownRoutes;
             existing.Refresh();
             PresetMessage = Loc.T("Presets.Updated", existing.Name);
         }
@@ -812,6 +819,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             Presets.Add(new PresetViewModel(this, captured));
             OnPropertyChanged(nameof(HasPresets));
             PresetMessage = Loc.T("Presets.Saved", name);
+            UpdateAutoPresetChoices();
         }
         settingsStore.Save(settings);
         NewPresetName = "";
@@ -836,7 +844,9 @@ public sealed partial class RoutesViewModel : ObservableObject
             return false;
         }
         if (name == preset.Model.Name) { return true; }
+        if (settings.AutoPresets.GetValueOrDefault(SelectedGame.AppId) == preset.Model.Name) { settings.AutoPresets[SelectedGame.AppId] = name; }
         preset.Model.Name = name;
+        UpdateAutoPresetChoices();
         settingsStore.Save(settings);
         PresetMessage = Loc.T("Presets.Renamed", name);
         OnPropertyChanged(nameof(SavePresetLabel));
@@ -848,11 +858,65 @@ public sealed partial class RoutesViewModel : ObservableObject
         if (!Confirm(Loc.T("Presets.ConfirmDelete", preset.Name))) { return; }
         GamePresets.Remove(preset.Model);
         Presets.Remove(preset);
+        if (settings.AutoPresets.GetValueOrDefault(SelectedGame.AppId) == preset.Model.Name) { settings.AutoPresets.Remove(SelectedGame.AppId); }
+        UpdateAutoPresetChoices();
         settingsStore.Save(settings);
         OnPropertyChanged(nameof(HasPresets));
         OnPropertyChanged(nameof(SavePresetLabel));
         PresetMessage = Loc.T("Presets.Deleted", preset.Name);
         UpdateSelectedPreset();
+    }
+
+    // ----- Apply a preset when a game starts -----
+
+    /// <summary>"Don't apply" (empty key) and the game's presets, for the choice in the presets panel.</summary>
+    public ObservableCollection<PresetChoice> AutoPresetChoices { get; } = new ObservableCollection<PresetChoice>();
+
+    /// <summary>The preset to apply when the selected game starts, or "" for none.</summary>
+    [ObservableProperty]
+    string autoPresetName = "";
+
+    bool updatingAutoPreset;
+
+    /// <summary>E.g. "When Counter-Strike 2 starts, apply:".</summary>
+    public string AutoPresetLabel => Loc.T("AutoPreset.When", SelectedGame.Name);
+
+    void UpdateAutoPresetChoices()
+    {
+        updatingAutoPreset = true;
+        AutoPresetChoices.Clear();
+        AutoPresetChoices.Add(new PresetChoice("", Loc.T("AutoPreset.None")));
+        foreach (PresetViewModel preset in Presets) { AutoPresetChoices.Add(new PresetChoice(preset.Name, preset.Name)); }
+        string saved = settings.AutoPresets.GetValueOrDefault(SelectedGame.AppId) ?? "";
+        AutoPresetName = AutoPresetChoices.Any(choice => choice.Key == saved) ? saved : "";
+        updatingAutoPreset = false;
+        OnPropertyChanged(nameof(AutoPresetLabel));
+    }
+
+    partial void OnAutoPresetNameChanged(string value)
+    {
+        if (updatingAutoPreset || value == null) { return; }
+        if (value.Length == 0) { settings.AutoPresets.Remove(SelectedGame.AppId); }
+        else { settings.AutoPresets[SelectedGame.AppId] = value; }
+        settingsStore.Save(settings);
+    }
+
+    /// <summary>
+    /// Applies the preset chosen for a game that just started: switches to the game if needed, waits for its routes, then
+    /// applies the preset. Returns the message to show, or null if there was nothing to do.
+    /// </summary>
+    public async Task<string?> ApplyPresetForStartedGameAsync(Game game)
+    {
+        string? name = settings.AutoPresets.GetValueOrDefault(game.AppId);
+        if (string.IsNullOrEmpty(name)) { return null; }
+        if (SelectedGame != game) { SelectedGame = game; }
+        await currentLoad;
+        if (SelectedGame != game || FindPreset(name) is not PresetViewModel preset) { return null; }
+        if (SelectedPreset != preset) { await ApplyPresetAsync(preset); }
+        if (SelectedPreset != preset) { return null; }
+        string message = Loc.T("AutoPreset.Applied", game.Name, preset.Name);
+        StatusMessage = message;
+        return message;
     }
 
     // ----- Auto select -----
