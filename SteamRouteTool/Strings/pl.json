@@ -48,6 +48,7 @@
   "Routes.Presets": "Zestawy",
   "Routes.SavePresetChip": "Zapisz obecny",
   "Routes.NoPresetsHint": "Nie ma jeszcze zestawów: zablokuj wybrane trasy, a potem je zapisz.",
+  "Routes.PickPreset": "Wybierz zestaw",
   "Routes.StatBlocked": "zablokowane",
   "Routes.StatAllowed": "dozwolone",
   "Routes.StatBestPing": "najlepszy ping",

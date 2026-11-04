@@ -11,9 +11,9 @@ _Updated by [eyyMinda](https://github.com/eyyMinda)._
 
 - In a large or maximized window, How to use, Settings and About are centered and up to 1024 px wide instead of sticking to the left.
 - Small windows: the Routes page switches to a compact layout so the server list keeps its room:
-  - Presets become one slim, scrollable row and Auto select a compact pill (− N + and Auto select).
+  - Presets become a dropdown ("Choose a preset") next to Save current, and Auto select a compact pill (− N + and Auto select).
   - The region chips become a list, and server rows drop the relay count so they fit on one line.
-  - The game tabs scroll sideways (also with the mouse wheel) when they don't all fit, and the headline numbers get smaller.
+  - The game tabs stay as long as they fit beside the headline numbers; when they don't, a game dropdown takes their place. The numbers get smaller.
 - The hint for having no presets yet no longer says to "save them above".
 
 ## [2.1.2] - 2026-11-04

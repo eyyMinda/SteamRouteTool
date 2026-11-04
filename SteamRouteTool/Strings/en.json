@@ -51,6 +51,7 @@
   "Routes.Presets": "Presets",
   "Routes.SavePresetChip": "Save current",
   "Routes.NoPresetsHint": "No presets yet: block the routes you want, then save them.",
+  "Routes.PickPreset": "Choose a preset",
   "Routes.StatBlocked": "blocked",
   "Routes.StatAllowed": "allowed",
   "Routes.StatBestPing": "best ping",

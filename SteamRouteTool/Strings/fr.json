@@ -48,6 +48,7 @@
   "Routes.Presets": "Préréglages",
   "Routes.SavePresetChip": "Enregistrer l'actuel",
   "Routes.NoPresetsHint": "Aucun préréglage pour l'instant : bloquez les routes voulues, puis enregistrez-les.",
+  "Routes.PickPreset": "Choisir un préréglage",
   "Routes.StatBlocked": "bloquées",
   "Routes.StatAllowed": "autorisées",
   "Routes.StatBestPing": "meilleur ping",

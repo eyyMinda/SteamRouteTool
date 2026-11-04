@@ -48,6 +48,7 @@
   "Routes.Presets": "Predefinições",
   "Routes.SavePresetChip": "Salvar atual",
   "Routes.NoPresetsHint": "Ainda não há predefinições: bloqueie as rotas que quiser e salve.",
+  "Routes.PickPreset": "Escolha uma predefinição",
   "Routes.StatBlocked": "bloqueadas",
   "Routes.StatAllowed": "permitidas",
   "Routes.StatBestPing": "melhor ping",

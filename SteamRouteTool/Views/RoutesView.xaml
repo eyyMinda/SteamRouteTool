@@ -31,8 +31,9 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
-    <DockPanel Margin="0,0,0,14">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+    <DockPanel x:Name="Header" Margin="0,0,0,14" SizeChanged="Header_SizeChanged">
+      <StackPanel x:Name="StatsPanel" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0"
+                  SizeChanged="Header_SizeChanged">
         <StackPanel Margin="0,0,24,0">
           <TextBlock Text="{Binding BlockedRouteCount}" Style="{StaticResource BigNumber}" Foreground="{DynamicResource PingPoorBrush}" />
           <TextBlock Text="{l:Tr Routes.StatBlocked}" Style="{StaticResource SecondaryText}" />
@@ -50,15 +51,17 @@
           <TextBlock Text="{l:Tr Routes.StatWorstPing}" Style="{StaticResource SecondaryText}" />
         </StackPanel>
       </StackPanel>
-      <!-- Scrolls sideways when the window is too narrow for every game (also with the mouse wheel). -->
-      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center"
-                    PreviewMouseWheel="GameTabs_PreviewMouseWheel">
-        <ListBox Style="{StaticResource GameTabs}" ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}"
+      <!-- The game tabs while they fit beside the numbers; a dropdown when they don't (see Header_SizeChanged). -->
+      <Grid VerticalAlignment="Center">
+        <ListBox x:Name="GameTabsList" Style="{StaticResource GameTabs}" ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}"
                  AutomationProperties.Name="Game" />
-      </ScrollViewer>
+        <ComboBox x:Name="GamePicker" ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}" DisplayMemberPath="Name"
+                  FontSize="15" FontWeight="SemiBold" MinWidth="190" HorizontalAlignment="Left" Visibility="Collapsed"
+                  AutomationProperties.Name="Game" />
+      </Grid>
     </DockPanel>
 
-    <!-- Compact (small window): presets on one scrollable line, Auto select as a slim pill. -->
+    <!-- Compact (small window): presets as a dropdown, Auto select as a slim pill. -->
     <Grid Grid.Row="1" Margin="0,0,0,12" Style="{StaticResource CompactOnly}">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
@@ -70,32 +73,22 @@
         <Border Style="{StaticResource AccentWash}" />
         <DockPanel Margin="12,8">
           <TextBlock DockPanel.Dock="Left" Text="{l:Tr Routes.Presets}" Style="{StaticResource Overline}" Margin="0,0,12,0" VerticalAlignment="Center" />
-          <routes:PresetsManager DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Center" />
+          <routes:PresetsManager DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
           <TextBlock DockPanel.Dock="Left" Text="{l:Tr Routes.NoPresetsHint}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
                      TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
                      Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
-          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center"
-                        PreviewMouseWheel="GameTabs_PreviewMouseWheel">
-            <ListBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name"
-                     IsEnabled="{Binding CanChangeRules}" AutomationProperties.Name="Preset">
-              <ListBox.Style>
-                <Style TargetType="ListBox" BasedOn="{StaticResource Chips}">
-                  <Setter Property="ItemsPanel">
-                    <Setter.Value>
-                      <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                      </ItemsPanelTemplate>
-                    </Setter.Value>
-                  </Setter>
-                </Style>
-              </ListBox.Style>
-              <ListBox.ItemContainerStyle>
-                <Style TargetType="ListBoxItem" BasedOn="{StaticResource Chip}">
-                  <Setter Property="Margin" Value="0,0,8,0" />
-                </Style>
-              </ListBox.ItemContainerStyle>
-            </ListBox>
-          </ScrollViewer>
+          <Grid VerticalAlignment="Center" Visibility="{Binding HasPresets, Converter={StaticResource VisibleWhen}}">
+            <!-- Up to 260 px, shrinking with the window. -->
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" MaxWidth="260" />
+              <ColumnDefinition Width="0" />
+            </Grid.ColumnDefinitions>
+            <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name"
+                      IsEnabled="{Binding CanChangeRules}" AutomationProperties.Name="Preset" />
+            <TextBlock Text="{l:Tr Routes.PickPreset}" Margin="12,0,36,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       Visibility="{Binding SelectedPreset, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+          </Grid>
         </DockPanel>
       </Grid>
       <Border Grid.Column="2" Style="{StaticResource AutoCard}" Padding="10,6" VerticalAlignment="Center">

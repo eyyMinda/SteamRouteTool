@@ -48,6 +48,7 @@
   "Routes.Presets": "预设",
   "Routes.SavePresetChip": "保存当前",
   "Routes.NoPresetsHint": "还没有预设：屏蔽你想要的路线，然后保存。",
+  "Routes.PickPreset": "选择预设",
   "Routes.StatBlocked": "已屏蔽",
   "Routes.StatAllowed": "已允许",
   "Routes.StatBestPing": "最低延迟",

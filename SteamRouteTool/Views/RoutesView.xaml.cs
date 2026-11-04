@@ -1,15 +1,17 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 
 namespace SteamRouteTool.Views;
 
 public partial class RoutesView : UserControl
 {
-    // Below this space the page switches to its compact layout (see Responsive): slim presets and Auto select,
-    // a region list instead of chips.
+    // Below this space the page switches to its compact layout (see Responsive): presets as a dropdown, a slim
+    // Auto select, a region list instead of chips.
     const double CompactWidth = 820;
     const double CompactHeight = 560;
+
+    // The game tabs' natural width, measured while they're shown (game names aren't translated, so it doesn't change).
+    double gameTabsWidth;
 
     public RoutesView()
     {
@@ -21,12 +23,16 @@ public partial class RoutesView : UserControl
         Responsive.SetIsCompact(this, ActualWidth < CompactWidth || ActualHeight < CompactHeight);
     }
 
-    // The mouse wheel scrolls a sideways strip (game tabs, compact presets) sideways.
-    void GameTabs_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    // The clickable game tabs stay while they fit beside the headline numbers; otherwise a dropdown takes their place.
+    void Header_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        ScrollViewer strip = (ScrollViewer)sender;
-        if (strip.ScrollableWidth <= 0) { return; }
-        strip.ScrollToHorizontalOffset(strip.HorizontalOffset - e.Delta / 2.0);
-        e.Handled = true;
+        if (GameTabsList.Visibility == Visibility.Visible)
+        {
+            GameTabsList.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            gameTabsWidth = Math.Max(gameTabsWidth, GameTabsList.DesiredSize.Width);
+        }
+        bool tabsFit = gameTabsWidth + StatsPanel.ActualWidth + StatsPanel.Margin.Left <= Header.ActualWidth;
+        GameTabsList.Visibility = tabsFit ? Visibility.Visible : Visibility.Collapsed;
+        GamePicker.Visibility = tabsFit ? Visibility.Collapsed : Visibility.Visible;
     }
 }

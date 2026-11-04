@@ -48,6 +48,7 @@
   "Routes.Presets": "Пресеты",
   "Routes.SavePresetChip": "Сохранить текущее",
   "Routes.NoPresetsHint": "Пресетов пока нет: заблокируйте нужные маршруты и сохраните их.",
+  "Routes.PickPreset": "Выберите пресет",
   "Routes.StatBlocked": "заблокировано",
   "Routes.StatAllowed": "разрешено",
   "Routes.StatBestPing": "лучший пинг",

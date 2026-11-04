@@ -48,6 +48,7 @@
   "Routes.Presets": "Ön ayarlar",
   "Routes.SavePresetChip": "Mevcut durumu kaydet",
   "Routes.NoPresetsHint": "Henüz ön ayar yok: istediğiniz rotaları engelleyip kaydedin.",
+  "Routes.PickPreset": "Ön ayar seçin",
   "Routes.StatBlocked": "engelli",
   "Routes.StatAllowed": "izinli",
   "Routes.StatBestPing": "en iyi ping",
